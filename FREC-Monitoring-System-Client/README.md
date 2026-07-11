@@ -1,0 +1,1 @@
+Frontend placeholder\n\nThis folder contains the React-based frontend app for the FREC Monitoring System. Keep UI pages such as login/auth inside src/pages and reusable components inside src/components.\n
