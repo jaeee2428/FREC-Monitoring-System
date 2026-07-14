@@ -18,13 +18,16 @@ const DEFAULT_SIDEBAR_ICONS = [
     { icon: RotateIcon, label: "History" },
 ];
 
-function SidebarIcon({ icon: Icon, active, label }) {
+// 1. ADDED "onClick" TO THE PROPS LIST HERE
+function SidebarIcon({ icon: Icon, active, label, onClick }) {
     return (
         <button
             title={label}
+            onClick={onClick} // 2. ADDED "onClick={onClick}" HERE TO ACTIVATE IT
+            type="button"
             className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${active
-                    ? "bg-[#fbe9e7] text-[#7a1f2b]"
-                    : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                ? "bg-[#fbe9e7] text-[#7a1f2b]"
+                : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"
                 }`}
         >
             <Icon size={18} />
@@ -35,18 +38,6 @@ function SidebarIcon({ icon: Icon, active, label }) {
 /**
  * Shared shell for every role's dashboard: top bar, sidebar, tabs, and footer.
  * Each role page supplies its own header/content via `children`.
- *
- * Props:
- * - userName:        string, shown top-right and in the sidebar avatar
- * - userInitials:    string, e.g. "DE"
- * - tabs:            optional string[] override (defaults to the 3 certification tabs)
- * - activeTab:        controlled index of the active tab
- * - onTabChange:      (index) => void
- * - showAddButton:    bool — only Adviser/Admin roles show "+ Add"
- * - onAddClick:       () => void
- * - sidebarIcons:      optional override array of { icon, label }
- * - activeSidebarIndex: which sidebar icon is highlighted (defaults to 0 = Home)
- * - children:          the role-specific main content (banner, stats, panels, etc.)
  */
 export default function DashboardLayout({
     userName,
@@ -58,6 +49,7 @@ export default function DashboardLayout({
     onAddClick = () => { },
     sidebarIcons = DEFAULT_SIDEBAR_ICONS,
     activeSidebarIndex = 0,
+    onLogout,
     children,
 }) {
     return (
@@ -112,7 +104,9 @@ export default function DashboardLayout({
                             />
                         ))}
                     </div>
-                    <SidebarIcon icon={LogOutIcon} label="Log out" />
+
+                    {/* This onClick={onLogout} will now fire correctly! */}
+                    <SidebarIcon icon={LogOutIcon} label="Log out" onClick={onLogout} />
                 </aside>
 
                 {/* Main content */}
@@ -125,8 +119,8 @@ export default function DashboardLayout({
                                     key={tab}
                                     onClick={() => onTabChange(i)}
                                     className={`flex items-center gap-1.5 border-b-2 pb-2 text-sm font-medium transition-colors ${activeTab === i
-                                            ? "border-[#7a1f2b] text-[#7a1f2b]"
-                                            : "border-transparent text-slate-500 hover:text-slate-700"
+                                        ? "border-[#7a1f2b] text-[#7a1f2b]"
+                                        : "border-transparent text-slate-500 hover:text-slate-700"
                                         }`}
                                 >
                                     <FileTextIcon size={14} />
