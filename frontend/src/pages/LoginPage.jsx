@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import AuthCard from '../components/AuthCard'
+import AdviserDashboard from '../pages/adviser/dashboard'
 
 const accounts = [
     {
