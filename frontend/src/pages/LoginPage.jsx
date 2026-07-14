@@ -1,55 +1,14 @@
 import { useEffect, useState } from 'react'
 import AuthCard from '../components/AuthCard'
-import AdviserDashboard from '../pages/adviser/dashboard'
+import { accounts, defaultAccount, isAdviserRole } from '../data/accounts'
 
-const accounts = [
-    {
-        initials: 'MS',
-        name: 'Maria Santos',
-        email: 'm.santos@university.edu.ph',
-        role: 'Student',
-    },
-    {
-        initials: 'DE',
-        name: 'Dr. Elena Reyes',
-        email: 'e.reyes@university.edu.ph',
-        role: 'Adviser',
-    },
-    {
-        initials: 'AD',
-        name: 'Admin Dela Rosa',
-        email: 'it.admin@university.edu.ph',
-        role: 'IT Admin',
-    },
-    {
-        initials: 'DJ',
-        name: 'Dr. Jose Santos',
-        email: 'j.santos@university.edu.ph',
-        role: 'Program Chair',
-    },
-    {
-        initials: 'DA',
-        name: 'Dr. Amalia Cruz',
-        email: 'a.cruz@university.edu.ph',
-        role: 'Dean',
-    },
-    {
-        initials: 'PR',
-        name: 'Prof. Ramon Dela Cruz',
-        email: 'r.delacruz@university.edu.ph',
-        role: 'Reviewer (FREC)',
-    },
-]
-
-const mockWhitelistedAccount = accounts[0]
-
-function LoginPage() {
+function LoginPage({ onSignIn }) {
     const [selectedAccount, setSelectedAccount] = useState(() => {
         if (typeof window !== 'undefined') {
             const saved = window.sessionStorage.getItem('mockWhitelistedAccount')
-            return saved ? JSON.parse(saved) : mockWhitelistedAccount
+            return saved ? JSON.parse(saved) : defaultAccount
         }
-        return mockWhitelistedAccount
+        return defaultAccount
     })
 
     useEffect(() => {
@@ -60,6 +19,14 @@ function LoginPage() {
             )
         }
     }, [selectedAccount])
+
+    const handleAccountClick = (account) => {
+        setSelectedAccount(account)
+
+        if (isAdviserRole(account.role)) {
+            onSignIn(account)
+        }
+    }
 
     return (
         <div className="login-page">
@@ -76,17 +43,15 @@ function LoginPage() {
                 </header>
                 <AuthCard
                     title="Sign in with Google"
-
                     description="Access is restricted to whitelisted institutional Google accounts only. Select your account below to continue."
                 >
-
                     <div className="account-list">
                         {accounts.map((account) => (
                             <button
                                 key={account.email}
                                 className={`account-item ${selectedAccount.email === account.email ? 'selected' : ''}`}
                                 type="button"
-                                onClick={() => setSelectedAccount(account)}
+                                onClick={() => handleAccountClick(account)}
                             >
                                 <div className="account-avatar">{account.initials}</div>
                                 <div className="account-details">
@@ -105,7 +70,9 @@ function LoginPage() {
                 </div>
 
                 <div className="session-note">
-                    Mock signed-in account: {selectedAccount.name} — {selectedAccount.email}
+                    {isAdviserRole(selectedAccount.role)
+                        ? `Adviser account selected — click "${selectedAccount.name}" to open the dashboard.`
+                        : `Mock signed-in account: ${selectedAccount.name} — ${selectedAccount.email}`}
                 </div>
             </div>
         </div>
