@@ -110,11 +110,10 @@ function SidebarIcon({ icon: Icon, active, label }) {
   return (
     <button
       title={label}
-      className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${
-        active
-          ? "bg-[#fbe9e7] text-[#7a1f2b]"
-          : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-      }`}
+      className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${active
+        ? "bg-[#fbe9e7] text-[#7a1f2b]"
+        : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+        }`}
     >
       <Icon size={18} />
     </button>
@@ -136,11 +135,10 @@ function ModeButton({ mode, active, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
-        active
-          ? "border-[#7a1f2b] bg-[#7a1f2b] text-white"
-          : "border-slate-300 bg-white text-slate-600 hover:border-[#7a1f2b] hover:text-[#7a1f2b]"
-      }`}
+      className={`rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${active
+        ? "border-[#7a1f2b] bg-[#7a1f2b] text-white"
+        : "border-slate-300 bg-white text-slate-600 hover:border-[#7a1f2b] hover:text-[#7a1f2b]"
+        }`}
     >
       Mode {mode}
     </button>
@@ -192,7 +190,19 @@ export default function AdviserDashboard() {
   const pending = submissions.filter((s) => s.status === "SUBMITTED");
 
   return (
-    <div className="min-h-screen w-full bg-[#f7f7f8] font-sans text-slate-800">
+    <div
+      className="bg-[#f7f7f8] font-sans text-slate-800"
+      style={{
+        width: "100vw",
+        minHeight: "100vh",
+        position: "relative",
+        left: "50%",
+        transform: "translateX(-50%)",
+        textAlign: "left",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       {/* Top bar */}
       <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
         <div className="flex items-center gap-2">
@@ -218,7 +228,7 @@ export default function AdviserDashboard() {
         </div>
       </header>
 
-      <div className="flex">
+      <div className="flex flex-1">
         {/* Sidebar */}
         <aside className="flex w-16 flex-col items-center justify-between border-r border-slate-200 bg-white py-4">
           <div className="flex flex-col gap-2">
@@ -239,11 +249,10 @@ export default function AdviserDashboard() {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(i)}
-                  className={`flex items-center gap-1.5 border-b-2 pb-2 text-sm font-medium transition-colors ${
-                    activeTab === i
-                      ? "border-[#7a1f2b] text-[#7a1f2b]"
-                      : "border-transparent text-slate-500 hover:text-slate-700"
-                  }`}
+                  className={`flex items-center gap-1.5 border-b-2 pb-2 text-sm font-medium transition-colors ${activeTab === i
+                    ? "border-[#7a1f2b] text-[#7a1f2b]"
+                    : "border-transparent text-slate-500 hover:text-slate-700"
+                    }`}
                 >
                   <FileTextIcon size={14} />
                   {tab}
@@ -257,7 +266,7 @@ export default function AdviserDashboard() {
 
           {/* Welcome banner */}
           <div className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-[#7a1f2b] to-[#4a1319] px-8 py-6 text-white">
-            <h1 className="text-xl font-bold">Welcome, Dr. Elena Reyes!</h1>
+            <h3 className="text-xl font-bold">Welcome, Dr. Elena Reyes!</h3>
             <p className="mt-1 max-w-xl text-sm text-white/85">
               This is CertTrack, your certification monitoring dashboard. Track document
               submissions, monitor approval status, and manage the certification workflow.
@@ -334,7 +343,12 @@ export default function AdviserDashboard() {
                       </button>
                       <button
                         onClick={() => approve(sub.id)}
-                        className="flex items-center gap-1.5 rounded-md bg-[#e6b8bd] px-3 py-1.5 text-xs font-semibold text-[#7a1f2b] hover:bg-[#dba3aa]"
+                        disabled={!sub.mode}
+                        title={!sub.mode ? "Select a Mode before forwarding to FREC" : undefined}
+                        className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${sub.mode
+                          ? "cursor-pointer bg-[#e6b8bd] text-[#7a1f2b] hover:bg-[#dba3aa]"
+                          : "cursor-not-allowed bg-slate-100 text-slate-400 pointer-events-none"
+                          }`}
                       >
                         <ArrowRightCircleIcon size={14} /> Approve &rarr; FREC
                       </button>
