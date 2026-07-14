@@ -61,10 +61,17 @@ body {
   width: 100%;
   max-width: 100%;
   margin: 0;
+  box-sizing: border-box;
+}
+
+#root.app-root--auth {
   display: flex;
   justify-content: center;
   align-items: center;
-  box-sizing: border-box;
+}
+
+#root.app-root--dashboard {
+  display: block;
 }
 
 h1,

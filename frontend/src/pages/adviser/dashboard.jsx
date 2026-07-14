@@ -20,6 +20,7 @@ const INITIAL_SUBMISSIONS = [
 function ModeButton({ mode, active, onClick }) {
     return (
         <button
+            type="button"
             onClick={onClick}
             className={`rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${active
                 ? "border-[#7a1f2b] bg-[#7a1f2b] text-white"
@@ -31,7 +32,7 @@ function ModeButton({ mode, active, onClick }) {
     );
 }
 
-export default function AdviserDashboard() {
+export default function AdviserDashboard({ user = { name: "Dr. Elena Reyes", initials: "DE" }, onLogout }) {
     const [activeTab, setActiveTab] = useState(0);
     const [submissions, setSubmissions] = useState(INITIAL_SUBMISSIONS);
     const [toast, setToast] = useState(null);
@@ -51,7 +52,10 @@ export default function AdviserDashboard() {
 
     const approve = (id) => {
         const sub = submissions.find((s) => s.id === id);
-        if (!sub.mode) return;
+        if (!sub.mode) {
+            showToast('Select a Mode before forwarding to FREC.');
+            return;
+        }
         setSubmissions((prev) =>
             prev.map((s) => (s.id === id ? { ...s, status: "FORWARDED-FREC" } : s))
         );
@@ -70,22 +74,23 @@ export default function AdviserDashboard() {
 
     return (
         <DashboardLayout
-            userName="Dr. Elena Reyes"
-            userInitials="DE"
+            userName={user.name}
+            userInitials={user.initials}
             activeTab={activeTab}
             onTabChange={setActiveTab}
             showAddButton
             onAddClick={() => showToast("Add document form would open here.")}
+            onLogout={onLogout}
         >
             {/* Welcome banner */}
             <div className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-[#7a1f2b] to-[#4a1319] px-8 py-6 text-white">
-                <h1 className="!m-0 !text-xl !font-bold !text-white">Welcome, Dr. Elena Reyes!</h1>
+                <h1 className="!m-0 !text-xl !font-bold !text-white">Welcome, {user.name}!</h1>
                 <p className="mt-1 max-w-xl text-sm text-white/85">
                     This is CertTrack, your certification monitoring dashboard. Track document
                     submissions, monitor approval status, and manage the certification workflow.
                 </p>
                 <div className="absolute right-8 top-1/2 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white/40 text-lg font-bold">
-                    DE
+                    {user.initials}
                 </div>
             </div>
 
@@ -149,12 +154,14 @@ export default function AdviserDashboard() {
                                 </span>
                                 <div className="flex gap-2">
                                     <button
+                                        type="button"
                                         onClick={() => disapprove(sub.id)}
                                         className="flex items-center gap-1.5 rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
                                     >
                                         <XCircleIcon size={14} /> Disapprove
                                     </button>
                                     <button
+                                        type="button"
                                         onClick={() => approve(sub.id)}
                                         disabled={!sub.mode}
                                         title={!sub.mode ? "Select a Mode before forwarding to FREC" : undefined}
