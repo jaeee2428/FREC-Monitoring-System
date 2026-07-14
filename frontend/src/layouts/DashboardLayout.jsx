@@ -12,19 +12,17 @@ import {
 const DEFAULT_TABS = ["Thesis Certification", "Research Certification", "Project Endorsement"];
 
 const DEFAULT_SIDEBAR_ICONS = [
-    { icon: HomeIcon, label: "Home" },
-    { icon: FileTextIcon, label: "Documents" },
-    { icon: CheckCircleIcon, label: "Review" },
-    { icon: RotateIcon, label: "History" },
+    { icon: HomeIcon, label: "Dashboard" },
+    { icon: FileTextIcon, label: "All Documents" },
+    { icon: CheckCircleIcon, label: "Approvals" },
+    { icon: RotateIcon, label: "Workflow Guide" },
 ];
 
-// 1. ADDED "onClick" TO THE PROPS LIST HERE
 function SidebarIcon({ icon: Icon, active, label, onClick }) {
     return (
         <button
             title={label}
-            onClick={onClick} // 2. ADDED "onClick={onClick}" HERE TO ACTIVATE IT
-            type="button"
+            onClick={onClick}
             className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${active
                 ? "bg-[#fbe9e7] text-[#7a1f2b]"
                 : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"
@@ -35,39 +33,24 @@ function SidebarIcon({ icon: Icon, active, label, onClick }) {
     );
 }
 
-/**
- * Shared shell for every role's dashboard: top bar, sidebar, tabs, and footer.
- * Each role page supplies its own header/content via `children`.
- */
 export default function DashboardLayout({
     userName,
     userInitials,
     tabs = DEFAULT_TABS,
     activeTab = 0,
     onTabChange = () => { },
+    showTabs = true,
     showAddButton = false,
     onAddClick = () => { },
     sidebarIcons = DEFAULT_SIDEBAR_ICONS,
     activeSidebarIndex = 0,
-    onLogout,
+    onLogout = () => { },
     children,
 }) {
     return (
-        <div
-            className="bg-[#f7f7f8] font-sans text-slate-800"
-            style={{
-                width: "100vw",
-                minHeight: "100vh",
-                position: "relative",
-                left: "50%",
-                transform: "translateX(-50%)",
-                textAlign: "left",
-                display: "flex",
-                flexDirection: "column",
-            }}
-        >
+        <div className="bg-[#f7f7f8] font-sans text-slate-800 flex flex-col min-h-screen w-full">
             {/* Top bar */}
-            <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
+            <header className="sticky top-0 z-20 flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
                 <div className="flex items-center gap-2">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#7a1f2b] text-xs font-bold text-white">
                         CT
@@ -93,7 +76,7 @@ export default function DashboardLayout({
 
             <div className="flex flex-1">
                 {/* Sidebar */}
-                <aside className="flex w-16 flex-col items-center justify-between border-r border-slate-200 bg-white py-4">
+                <aside className="fixed top-[57px] left-0 flex h-[calc(100vh-57px)] w-16 flex-col items-center justify-between border-r border-slate-200 bg-white py-4 z-10">
                     <div className="flex flex-col gap-2">
                         {sidebarIcons.map((item, i) => (
                             <SidebarIcon
@@ -101,42 +84,43 @@ export default function DashboardLayout({
                                 icon={item.icon}
                                 label={item.label}
                                 active={i === activeSidebarIndex}
+                                onClick={item.onClick}
                             />
                         ))}
                     </div>
-
-                    {/* This onClick={onLogout} will now fire correctly! */}
                     <SidebarIcon icon={LogOutIcon} label="Log out" onClick={onLogout} />
                 </aside>
 
                 {/* Main content */}
-                <main className="flex-1 px-8 py-6">
-                    {/* Tabs + optional Add button */}
-                    <div className="mb-5 flex items-center justify-between">
-                        <nav className="flex gap-8">
-                            {tabs.map((tab, i) => (
+                <main className="flex-1 ml-16 px-8 py-6">
+                    {/* Tabs */}
+                    {showTabs && (
+                        <div className="mb-5 flex items-center justify-between">
+                            <nav className="flex gap-8">
+                                {tabs.map((tab, i) => (
+                                    <button
+                                        key={tab}
+                                        onClick={() => onTabChange(i)}
+                                        className={`flex items-center gap-1.5 border-b-2 pb-2 text-sm font-medium transition-colors ${activeTab === i
+                                            ? "border-[#7a1f2b] text-[#7a1f2b]"
+                                            : "border-transparent text-slate-500 hover:text-slate-700"
+                                            }`}
+                                    >
+                                        <FileTextIcon size={14} />
+                                        {tab}
+                                    </button>
+                                ))}
+                            </nav>
+                            {showAddButton && (
                                 <button
-                                    key={tab}
-                                    onClick={() => onTabChange(i)}
-                                    className={`flex items-center gap-1.5 border-b-2 pb-2 text-sm font-medium transition-colors ${activeTab === i
-                                        ? "border-[#7a1f2b] text-[#7a1f2b]"
-                                        : "border-transparent text-slate-500 hover:text-slate-700"
-                                        }`}
+                                    onClick={onAddClick}
+                                    className="flex items-center gap-1.5 rounded-lg bg-[#7a1f2b] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#671a24]"
                                 >
-                                    <FileTextIcon size={14} />
-                                    {tab}
+                                    <PlusIcon size={15} /> Add
                                 </button>
-                            ))}
-                        </nav>
-                        {showAddButton && (
-                            <button
-                                onClick={onAddClick}
-                                className="flex items-center gap-1.5 rounded-lg bg-[#7a1f2b] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#671a24]"
-                            >
-                                <PlusIcon size={15} /> Add
-                            </button>
-                        )}
-                    </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Role-specific content goes here */}
                     {children}
