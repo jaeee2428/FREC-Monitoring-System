@@ -1,10 +1,6 @@
 import { useEffect, useState } from 'react'
 import AuthCard from '../components/AuthCard'
-<<<<<<< HEAD
 import { accounts, defaultAccount, isAdviserRole } from '../data/accounts'
-=======
-import AdviserDashboard from '../pages/adviser/dashboard'
->>>>>>> adviser
 
 function LoginPage({ onSignIn }) {
     const [selectedAccount, setSelectedAccount] = useState(() => {

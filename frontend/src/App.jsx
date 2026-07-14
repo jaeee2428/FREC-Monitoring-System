@@ -3,7 +3,6 @@ import './App.css'
 import { isAdviserRole } from './data/accounts.js'
 import AdviserDashboard from './pages/adviser/dashboard.jsx'
 import LoginPage from './pages/LoginPage.jsx'
-import AdviserDashboard from './pages/adviser/dashboard.jsx'
 
 const SESSION_KEY = 'mockSession'
 
