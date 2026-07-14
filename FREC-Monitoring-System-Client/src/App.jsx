@@ -3,9 +3,15 @@ import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
 import './App.css'
+import AdviserDashboard from "./pages/adviser/dashboard";
 
 function App() {
   const [count, setCount] = useState(0)
+  const [showDashboard, setShowDashboard] = useState(false)
+
+  if (showDashboard) {
+    return <AdviserDashboard />
+  }
 
   return (
     <>
@@ -24,7 +30,13 @@ function App() {
         <button
           type="button"
           className="counter"
-          onClick={() => setCount((count) => count + 1)}
+          onClick={() => {
+            const next = count + 1
+            setCount(next)
+            if (next >= 1) {
+              setShowDashboard(true)
+            }
+          }}
         >
           Count is {count}
         </button>
