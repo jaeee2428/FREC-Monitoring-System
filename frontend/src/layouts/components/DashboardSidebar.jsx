@@ -27,6 +27,7 @@ export default function DashboardSidebar({ sidebarIcons, activeSidebarIndex, onL
             icon={item.icon}
             label={item.label}
             active={i === activeSidebarIndex}
+            onClick={item.onClick}
           />
         ))}
       </div>
