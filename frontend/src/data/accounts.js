@@ -42,3 +42,7 @@ export const defaultAccount = accounts[0]
 export function isAdviserRole(role) {
     return ['adviser', 'advisor'].includes(role?.toLowerCase())
 }
+
+export function isStudentRole(role) {
+    return ['student'].includes(role?.toLowerCase())
+}
