@@ -4,17 +4,23 @@ import {
     FileTextIcon,
     CheckCircleIcon,
     RotateIcon,
-    LogOutIcon,
-    BellIcon,
-    PlusIcon,
 } from "../components/icons";
+import DashboardHeader from "./components/DashboardHeader";
+import DashboardSidebar from "./components/DashboardSidebar";
+import DashboardTabsBar from "./components/DashboardTabsBar";
+import DashboardFooter from "./components/DashboardFooter";
 
 const DEFAULT_TABS = ["Thesis Certification", "Research Certification", "Project Endorsement"];
 
-const DEFAULT_SIDEBAR_ICONS = [
-    { icon: HomeIcon, label: "Dashboard" },
-    { icon: FileTextIcon, label: "All Documents" },
-    { icon: CheckCircleIcon, label: "Approvals" },
+const ADVISER_SIDEBAR_ICONS = [
+    { icon: HomeIcon, label: "Home" },
+    { icon: FileTextIcon, label: "Documents" },
+    { icon: CheckCircleIcon, label: "Review" },
+    { icon: RotateIcon, label: "Workflow Guide" },
+];
+
+const STUDENT_SIDEBAR_ICONS = [
+    { icon: HomeIcon, label: "Home" },
     { icon: RotateIcon, label: "Workflow Guide" },
 ];
 
@@ -42,94 +48,56 @@ export default function DashboardLayout({
     showTabs = true,
     showAddButton = false,
     onAddClick = () => { },
-    sidebarIcons = DEFAULT_SIDEBAR_ICONS,
+    sidebarIcons,
     activeSidebarIndex = 0,
     onLogout = () => { },
+    role,
     children,
 }) {
+    const resolvedSidebarIcons = sidebarIcons ?? (role === "student" ? STUDENT_SIDEBAR_ICONS : ADVISER_SIDEBAR_ICONS);
+    const resolvedShowAddButton = role === "student" ? false : (showAddButton ?? true);
+
     return (
-        <div className="bg-[#f7f7f8] font-sans text-slate-800 flex flex-col min-h-screen w-full">
-            {/* Top bar */}
-            <header className="sticky top-0 z-20 flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
-                <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#7a1f2b] text-xs font-bold text-white">
-                        CT
-                    </div>
-                    <span className="text-sm">
-                        <span className="font-bold text-[#7a1f2b]">CertTrack:</span>{" "}
-                        <span className="text-slate-700">Certification Monitoring and Tracking System</span>
-                    </span>
-                </div>
-                <div className="flex items-center gap-4">
-                    <button className="relative text-slate-500 hover:text-slate-700">
-                        <BellIcon size={18} />
-                        <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-[#7a1f2b]" />
-                    </button>
-                    <div className="flex items-center gap-2">
-                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#7a1f2b] text-[11px] font-bold text-white">
-                            {userInitials}
-                        </div>
-                        <span className="text-sm font-medium text-slate-700">{userName}</span>
-                    </div>
-                </div>
-            </header>
+        <div
+            className="h-screen overflow-hidden bg-[#f7f7f8] font-sans text-slate-800"
+            style={{
+                width: "100vw",
+                position: "relative",
+                left: "50%",
+                transform: "translateX(-50%)",
+                textAlign: "left",
+                display: "flex",
+                flexDirection: "column",
+            }}
+        >
+            <DashboardHeader userName={userName} userInitials={userInitials} />
 
-            <div className="flex flex-1">
-                {/* Sidebar */}
-                <aside className="fixed top-[57px] left-0 flex h-[calc(100vh-57px)] w-16 flex-col items-center justify-between border-r border-slate-200 bg-white py-4 z-10">
-                    <div className="flex flex-col gap-2">
-                        {sidebarIcons.map((item, i) => (
-                            <SidebarIcon
-                                key={item.label}
-                                icon={item.icon}
-                                label={item.label}
-                                active={i === activeSidebarIndex}
-                                onClick={item.onClick}
-                            />
-                        ))}
+            <div className="flex flex-1 overflow-hidden">
+                <DashboardSidebar
+                    sidebarIcons={resolvedSidebarIcons}
+                    activeSidebarIndex={activeSidebarIndex}
+                    onLogout={onLogout}
+                />
+
+                <main className="flex-1 px-0 pb-6 pt-0">
+                    <div className="sticky top-0 z-10 border-b border-slate-200 bg-[#f7f7f8] px-8 pt-0">
+                        <DashboardTabsBar
+                            tabs={tabs}
+                            activeTab={activeTab}
+                            onTabChange={onTabChange}
+                            showAddButton={resolvedShowAddButton}
+                            onAddClick={onAddClick}
+                            role={role}
+                        />
                     </div>
-                    <SidebarIcon icon={LogOutIcon} label="Log out" onClick={onLogout} />
-                </aside>
 
-                {/* Main content */}
-                <main className="flex-1 ml-16 px-8 py-6">
-                    {/* Tabs */}
-                    {showTabs && (
-                        <div className="mb-5 flex items-center justify-between">
-                            <nav className="flex gap-8">
-                                {tabs.map((tab, i) => (
-                                    <button
-                                        key={tab}
-                                        onClick={() => onTabChange(i)}
-                                        className={`flex items-center gap-1.5 border-b-2 pb-2 text-sm font-medium transition-colors ${activeTab === i
-                                            ? "border-[#7a1f2b] text-[#7a1f2b]"
-                                            : "border-transparent text-slate-500 hover:text-slate-700"
-                                            }`}
-                                    >
-                                        <FileTextIcon size={14} />
-                                        {tab}
-                                    </button>
-                                ))}
-                            </nav>
-                            {showAddButton && (
-                                <button
-                                    onClick={onAddClick}
-                                    className="flex items-center gap-1.5 rounded-lg bg-[#7a1f2b] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#671a24]"
-                                >
-                                    <PlusIcon size={15} /> Add
-                                </button>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Role-specific content goes here */}
-                    {children}
+                    <div className="max-h-[calc(100vh-7rem)] overflow-y-auto px-8 pr-2 pt-3">
+                        {children}
+                    </div>
                 </main>
             </div>
 
-            <footer className="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-400">
-                © Developed by the University ICT Development Office. All rights reserved 2025.
-            </footer>
+            <DashboardFooter />
         </div>
     );
 }
