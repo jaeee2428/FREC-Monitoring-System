@@ -43,6 +43,10 @@ export function isAdviserRole(role) {
     return ['adviser', 'advisor'].includes(role?.toLowerCase())
 }
 
+export function isStudentRole(role) {
+    return role?.toLowerCase() === 'student'
+}
+
 export function isProgramChairRole(role) {
     return role?.toLowerCase() === 'program chair'
 }
