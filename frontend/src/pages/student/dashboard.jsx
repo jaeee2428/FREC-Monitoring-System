@@ -1,13 +1,10 @@
 import React, { useState } from "react";
 import "../../App.css";
 import DashboardLayout from "../../layouts/DashboardLayout";
+import DashboardCertStatus from "../../layouts/components/DashboardCertStatus";
 import { StatCard } from "../../components/StatCard";
-import {
-  FileTextIcon,
-  CheckCircleIcon,
-  ArrowRightCircleIcon,
-  PlusIcon,
-} from "../../components/icons";
+import WorkflowGuide from "./WorkflowGuide";
+import { HomeIcon, PlusIcon, RotateIcon } from "../../components/icons";
 
 const DOCUMENT_TYPES = ["Thesis Certification", "Research Certification", "Project Endorsement"];
 
@@ -43,6 +40,7 @@ export default function StudentDashboard({
   onLogout,
 }) {
   const [activeTab, setActiveTab] = useState(0);
+  const [activeView, setActiveView] = useState("home");
   const [requests, setRequests] = useState(INITIAL_REQUESTS);
   const [documentLink, setDocumentLink] = useState("");
   const [toast, setToast] = useState(null);
@@ -91,6 +89,11 @@ export default function StudentDashboard({
     showToast("Document submitted for review.");
   };
 
+  const sidebarIcons = [
+    { icon: HomeIcon, label: "Home", onClick: () => setActiveView("home") },
+    { icon: RotateIcon, label: "Workflow Guide", onClick: () => setActiveView("workflow") },
+  ];
+
   return (
     <DashboardLayout
       userName={user.name}
@@ -98,14 +101,22 @@ export default function StudentDashboard({
       activeTab={activeTab}
       onTabChange={setActiveTab}
       role="student"
+      sidebarIcons={sidebarIcons}
+      activeSidebarIndex={activeView === "workflow" ? 1 : 0}
+      showTabs={activeView !== "workflow"}
+      topBarTitle={activeView === "workflow" ? "Workflow Guide" : undefined}
       showAddButton
       onAddClick={() => showToast("New submission form would open here.")}
       onLogout={onLogout}
     >
+      {activeView === "workflow" ? (
+        <WorkflowGuide />
+      ) : (
+        <>
       <div className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-[#7a1f2b] to-[#4a1319] px-8 py-6 text-white">
         <h1 className="!m-0 !text-xl !font-bold !text-white">Welcome, {user.name}!</h1>
         <p className="mt-1 max-w-xl text-sm text-white/85">
-          This is CertTrack, your certification monitoring dashboard. 
+          This is CertTrack, your certification monitoring dashboard.
           Track document submissions, monitor approval status, and manage the certification workflow.
         </p>
         <div className="absolute right-8 top-1/2 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white/40 text-lg font-bold">
@@ -150,51 +161,13 @@ export default function StudentDashboard({
         </div>
       </form>
 
-      <div className="rounded-xl border border-slate-200 bg-white">
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5">
-          <h2 className="!text-sm !font-semibold !text-slate-800">Recent Requests</h2>
-          <span className="text-xs text-slate-400">{requests.length} items</span>
-        </div>
-
-        {requests.map((request) => (
-          <div
-            key={request.id}
-            className="flex items-center justify-between border-t border-slate-100 px-5 py-4 first:border-t-0"
-          >
-            <div>
-              <p className="text-sm font-semibold text-slate-800">{request.title}</p>
-              <p className="mt-1 text-xs text-slate-500">
-                {request.id} · Submitted {request.submitted}
-              </p>
-              <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
-                <FileTextIcon size={14} />
-                <span>{request.type}</span>
-              </div>
-            </div>
-
-            <div className="flex flex-col items-end gap-3">
-              <span
-                className={`rounded-md px-2.5 py-1 text-[11px] font-semibold tracking-wide ${request.status === "APPROVED"
-                  ? "bg-emerald-100 text-emerald-700"
-                  : request.status === "FORWARDED"
-                    ? "bg-violet-100 text-violet-700"
-                    : "bg-slate-100 text-slate-600"
-                  }`}
-              >
-                {request.status}
-              </span>
-              <button
-                type="button"
-                onClick={() => showToast(`${request.title} — ${request.note}`)}
-                className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
-              >
-                <CheckCircleIcon size={14} /> View Details
-                <ArrowRightCircleIcon size={14} />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+      <DashboardCertStatus
+        title="My Submissions"
+        requests={requests}
+        onViewDetails={(request) => showToast(`${request.title} - ${request.note}`)}
+      />
+        </>
+      )}
 
       {toast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm text-white shadow-lg">
