@@ -81,6 +81,7 @@ export default function AdviserDashboard({
       userInitials={user.initials}
       activeTab={activeTab}
       onTabChange={setActiveTab}
+      role="adviser"
       showAddButton
       onAddClick={() => showToast("Add document form would open here.")}
       onLogout={onLogout}

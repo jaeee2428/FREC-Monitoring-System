@@ -3,11 +3,13 @@ import "../../App.css";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import { StatCard } from "../../components/StatCard";
 import {
-  InfoIcon,
   FileTextIcon,
   CheckCircleIcon,
   ArrowRightCircleIcon,
+  PlusIcon,
 } from "../../components/icons";
+
+const DOCUMENT_TYPES = ["Thesis Certification", "Research Certification", "Project Endorsement"];
 
 const INITIAL_REQUESTS = [
   {
@@ -42,15 +44,51 @@ export default function StudentDashboard({
 }) {
   const [activeTab, setActiveTab] = useState(0);
   const [requests, setRequests] = useState(INITIAL_REQUESTS);
+  const [documentLink, setDocumentLink] = useState("");
   const [toast, setToast] = useState(null);
 
+  const totalSubmittedCount = requests.length;
   const pendingCount = requests.filter((item) => item.status === "PENDING REVIEW").length;
-  const approvedCount = requests.filter((item) => item.status === "APPROVED").length;
-  const forwardedCount = requests.filter((item) => item.status === "FORWARDED").length;
+  const completedCount = requests.filter(
+    (item) => item.status !== "PENDING REVIEW" && item.status !== "DISAPPROVED"
+  ).length;
+  const disapprovedCount = requests.filter((item) => item.status === "DISAPPROVED").length;
 
   const showToast = (message) => {
     setToast(message);
     window.setTimeout(() => setToast(null), 2200);
+  };
+
+  const submitDocument = (event) => {
+    event.preventDefault();
+
+    const trimmedLink = documentLink.trim();
+    const isGoogleDriveLink =
+      /^https:\/\/(drive|docs)\.google\.com\//i.test(trimmedLink);
+
+    if (!isGoogleDriveLink) {
+      showToast("Please enter a valid Google Drive link.");
+      return;
+    }
+
+    const submittedDate = new Date().toISOString().slice(0, 10);
+    const requestType = DOCUMENT_TYPES[activeTab] ?? DOCUMENT_TYPES[0];
+    const requestNumber = String(requests.length + 1).padStart(3, "0");
+
+    setRequests((prev) => [
+      {
+        id: `REQ-${new Date().getFullYear()}-${requestNumber}`,
+        title: `${requestType} Request`,
+        type: requestType,
+        submitted: submittedDate,
+        status: "PENDING REVIEW",
+        note: "Awaiting adviser evaluation.",
+        documentLink: trimmedLink,
+      },
+      ...prev,
+    ]);
+    setDocumentLink("");
+    showToast("Document submitted for review.");
   };
 
   return (
@@ -76,19 +114,41 @@ export default function StudentDashboard({
       </div>
 
       <div className="mb-6 flex gap-4">
-        <StatCard label="PENDING REVIEW" value={pendingCount} valueColor="text-[#7a1f2b]" />
-        <StatCard label="APPROVED" value={approvedCount} valueColor="text-emerald-600" />
-        <StatCard label="FORWARDED" value={forwardedCount} valueColor="text-violet-600" />
+        <StatCard label="TOTAL SUBMITTED" value={totalSubmittedCount} valueColor="text-[#7a1f2b]" />
+        <StatCard label="PENDING" value={pendingCount} valueColor="text-[#7a1f2b]" />
+        <StatCard label="COMPLETED" value={completedCount} valueColor="text-emerald-600" />
+        <StatCard label="DISAPPROVED" value={disapprovedCount} valueColor="text-red-600" />
       </div>
 
-      <div className="mb-6 flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-        <InfoIcon size={16} className="mt-0.5 shrink-0" />
-        <p>
-          <span className="font-semibold">Student Instructions:</span> Submit complete
-          documents and monitor the progress of each request. Once your submission is
-          reviewed, the status will update automatically.
-        </p>
-      </div>
+      <form
+        onSubmit={submitDocument}
+        className="mb-6 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm"
+      >
+        <div className="mb-3 flex items-center justify-between gap-4">
+          <div>
+            <h2 className="!text-sm !font-semibold !text-slate-800">Submit New Document</h2>
+          </div>
+          <span className="rounded-md bg-[#f4e7e9] px-2.5 py-1 text-[11px] font-semibold tracking-wide text-[#7a1f2b]">
+            GOOGLE DRIVE
+          </span>
+        </div>
+
+        <div className="flex gap-3">
+          <input
+            type="url"
+            value={documentLink}
+            onChange={(event) => setDocumentLink(event.target.value)}
+            placeholder="Paste Google Drive link"
+            className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition-colors placeholder:text-slate-400 focus:border-[#7a1f2b] focus:ring-2 focus:ring-[#7a1f2b]/15"
+          />
+          <button
+            type="submit"
+            className="flex items-center gap-1.5 rounded-lg bg-[#7a1f2b] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#671a24]"
+          >
+            <PlusIcon size={15} /> Submit
+          </button>
+        </div>
+      </form>
 
       <div className="rounded-xl border border-slate-200 bg-white">
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5">

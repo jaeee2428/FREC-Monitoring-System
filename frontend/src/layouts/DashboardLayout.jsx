@@ -35,7 +35,7 @@ export default function DashboardLayout({
     sidebarIcons,
     activeSidebarIndex = 0,
     onLogout,
-    role = "adviser",
+    role,
     children,
 }) {
     const resolvedSidebarIcons = sidebarIcons ?? (role === "student" ? STUDENT_SIDEBAR_ICONS : ADVISER_SIDEBAR_ICONS);
