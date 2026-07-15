@@ -50,12 +50,12 @@ export default function DashboardLayout({
     return (
         <div className="bg-[#f7f7f8] font-sans text-slate-800 flex flex-col min-h-screen w-full">
             {/* Top bar */}
-            <header className="sticky top-0 z-20 flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
-                <div className="flex items-center gap-2">
+            <header className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 sm:px-6">
+                <div className="flex min-w-0 items-center gap-2">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#7a1f2b] text-xs font-bold text-white">
                         CT
                     </div>
-                    <span className="text-sm">
+                    <span className="min-w-0 text-sm">
                         <span className="font-bold text-[#7a1f2b]">CertTrack:</span>{" "}
                         <span className="text-slate-700">Certification Monitoring and Tracking System</span>
                     </span>
@@ -92,7 +92,7 @@ export default function DashboardLayout({
                 </aside>
 
                 {/* Main content */}
-                <main className="flex-1 ml-16 px-8 py-6">
+                <main className="min-w-0 flex-1 ml-16 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
                     {/* Tabs */}
                     {showTabs && (
                         <div className="mb-5 flex items-center justify-between">

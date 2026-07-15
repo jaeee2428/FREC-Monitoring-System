@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-import { isAdviserRole } from './data/accounts.js'
+import { isAdminRole, isAdviserRole } from './data/accounts.js'
+import AdminDashboard from './pages/admin/Dashboard.jsx'
 import AdviserDashboard from './pages/adviser/Dashboard.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 
@@ -52,6 +53,10 @@ function App() {
 
   if (session && isAdviserRole(session.role)) {
     return <AdviserDashboard user={session} onLogout={handleSignOut} />
+  }
+
+  if (session && isAdminRole(session.role)) {
+    return <AdminDashboard user={session} onLogout={handleSignOut} />
   }
 
   return <LoginPage onSignIn={handleSignIn} />

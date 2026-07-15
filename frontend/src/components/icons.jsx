@@ -67,6 +67,30 @@ export const PlusIcon = (props) => (
     </IconBase>
 );
 
+export const UsersIcon = (props) => (
+    <IconBase {...props}>
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </IconBase>
+);
+
+export const SearchIcon = (props) => (
+    <IconBase {...props}>
+        <circle cx="11" cy="11" r="8" />
+        <path d="m21 21-4.35-4.35" />
+    </IconBase>
+);
+
+export const UploadIcon = (props) => (
+    <IconBase {...props}>
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <path d="m17 8-5-5-5 5" />
+        <path d="M12 3v12" />
+    </IconBase>
+);
+
 export const XCircleIcon = (props) => (
     <IconBase {...props}>
         <circle cx="12" cy="12" r="9" />
