@@ -14,7 +14,9 @@ const INITIAL_REQUESTS = [
     title: "Thesis Certification Request",
     type: "Thesis Certification",
     submitted: "2024-06-06",
-    status: "PENDING REVIEW",
+    status: "UNDER REVIEW",
+    mode: <span className="font-mono text-[13px] font-semibold text-violet-700">Mode 1</span>,
+    modeStr: "Mode 1",
     note: "Awaiting adviser evaluation.",
   },
   {
@@ -23,6 +25,8 @@ const INITIAL_REQUESTS = [
     type: "Research Certification",
     submitted: "2024-05-28",
     status: "APPROVED",
+    mode: <span className="font-mono text-[13px] font-semibold text-blue-700">Mode 2</span>,
+    modeStr: "Mode 2",
     note: "Your document has been accepted.",
   },
   {
@@ -30,7 +34,9 @@ const INITIAL_REQUESTS = [
     title: "Project Endorsement Request",
     type: "Project Endorsement",
     submitted: "2024-05-10",
-    status: "FORWARDED",
+    status: "FORWARDED-FREC",
+    mode: <span className="font-mono text-[13px] font-semibold text-orange-700">Mode 3</span>,
+    modeStr: "Mode 3",
     note: "Your request has been forwarded to FREC.",
   },
 ];
@@ -46,11 +52,11 @@ export default function StudentDashboard({
   const [toast, setToast] = useState(null);
 
   const totalSubmittedCount = requests.length;
-  const pendingCount = requests.filter((item) => item.status === "PENDING REVIEW").length;
+  const disapprovedCount = requests.filter((item) => item.status?.includes("DISAPPROVED")).length;
   const completedCount = requests.filter(
-    (item) => item.status !== "PENDING REVIEW" && item.status !== "DISAPPROVED"
+    (item) => item.status === "APPROVED" || item.status === "COMPLETED"
   ).length;
-  const disapprovedCount = requests.filter((item) => item.status === "DISAPPROVED").length;
+  const pendingCount = totalSubmittedCount - disapprovedCount - completedCount;
 
   const showToast = (message) => {
     setToast(message);
@@ -79,7 +85,8 @@ export default function StudentDashboard({
         title: `${requestType} Request`,
         type: requestType,
         submitted: submittedDate,
-        status: "PENDING REVIEW",
+        status: "UNDER REVIEW",
+        modeStr: "Mode 1", // Default for new submissions
         note: "Awaiting adviser evaluation.",
         documentLink: trimmedLink,
       },
@@ -138,6 +145,7 @@ export default function StudentDashboard({
         <div className="mb-3 flex items-center justify-between gap-4">
           <div>
             <h2 className="!text-sm !font-semibold !text-slate-800">Submit New Document</h2>
+            <p className="mt-0.5 text-xs text-slate-500">{DOCUMENT_TYPES[activeTab] ?? DOCUMENT_TYPES[0]}</p>
           </div>
           <span className="rounded-md bg-[#f4e7e9] px-2.5 py-1 text-[11px] font-semibold tracking-wide text-[#7a1f2b]">
             GOOGLE DRIVE
