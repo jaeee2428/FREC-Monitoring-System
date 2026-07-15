@@ -14,7 +14,6 @@ import {
     RotateIcon,
 } from "../../components/icons.jsx";
 
-// Initial pending documents routed to the Program Chair
 const INITIAL_SUBMISSIONS = [
     {
         id: "DOC-2026-9021",
@@ -24,7 +23,7 @@ const INITIAL_SUBMISSIONS = [
         program: "BS Computer Science",
         submitted: "2026-07-12",
         status: "AWAITING_CHAIR_REVIEW",
-        mode: 1, // Default Mode 1
+        mode: 1, 
     },
     {
         id: "DOC-2026-3342",
@@ -34,7 +33,7 @@ const INITIAL_SUBMISSIONS = [
         program: "BS Information Technology",
         submitted: "2026-07-14",
         status: "AWAITING_CHAIR_REVIEW",
-        mode: 2, // Default Mode 2
+        mode: 2, 
     },
     {
         id: "DOC-2026-5581",
@@ -44,7 +43,7 @@ const INITIAL_SUBMISSIONS = [
         program: "BS Electrical Engineering",
         submitted: "2026-07-15",
         status: "AWAITING_CHAIR_REVIEW",
-        mode: 3, // Default Mode 3
+        mode: 3, 
     }
 ];
 
@@ -59,14 +58,45 @@ const ALL_DOCUMENTS = [
     { id: 8, docId: "DOC-2024-008", title: "Research Certification", student: "Paolo Villanueva", studentNo: "2020-00445", adviser: "Dr. Lim", mode: 3, status: "DEAN ENDORSED", dateUpdated: "2024-06-11" },
 ];
 
+// Reusable Multi-Color Badge Component
+function ModeBadge({ mode }) {
+    if (mode === 1) {
+        return (
+            <span className="rounded border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
+                Mode 1
+            </span>
+        );
+    }
+    if (mode === 2) {
+        return (
+            <span className="rounded border border-sky-200 bg-sky-50 px-2.5 py-0.5 text-xs font-bold text-sky-700">
+                Mode 2
+            </span>
+        );
+    }
+    if (mode === 3) {
+        return (
+            <span className="rounded border border-purple-200 bg-purple-50 px-2.5 py-0.5 text-xs font-bold text-purple-700">
+                Mode 3
+            </span>
+        );
+    }
+    return null;
+}
+
 function ModeButton({ mode, active, onClick }) {
+    // Dynamic styles when setting a mode manually
+    const getActiveStyle = () => {
+        if (!active) return "border-slate-300 bg-white text-slate-600 hover:border-slate-400";
+        if (mode === 1) return "border-emerald-600 bg-emerald-600 text-white";
+        if (mode === 2) return "border-sky-500 bg-sky-500 text-white";
+        return "border-purple-600 bg-purple-600 text-white";
+    };
+
     return (
         <button
             onClick={onClick}
-            className={`rounded-md border px-3 py-1 text-xs font-medium transition-colors ${active
-                ? "border-[#7a1f2b] bg-[#7a1f2b] text-white"
-                : "border-slate-300 bg-white text-slate-600 hover:border-[#7a1f2b] hover:text-[#7a1f2b]"
-                }`}
+            className={`rounded-md border px-3 py-1 text-xs font-semibold transition-colors ${getActiveStyle()}`}
         >
             Mode {mode}
         </button>
@@ -204,11 +234,14 @@ export default function ProgramChairDashboard({ onLogout = () => { } }) {
                                         <p className="mt-1 text-xs text-slate-500">
                                             {sub.student} · {sub.studentNo} · {sub.program}
                                         </p>
-                                        <p className="text-xs text-slate-400">
-                                            ID: {sub.id} · Submitted: {sub.submitted}
-                                        </p>
                                         
-                                        {/* Interactive Mode Toggles */}
+                                        <div className="mt-2 flex items-center gap-2 text-xs text-slate-400">
+                                            <span>ID: {sub.id}</span>
+                                            <span>·</span>
+                                            <ModeBadge mode={sub.mode} />
+                                        </div>
+                                        
+                                        {/* Dynamic Mode Switch Toggles */}
                                         <div className="mt-3 flex items-center gap-2">
                                             <span className="text-xs font-medium text-slate-500">Switch Mode:</span>
                                             {[1, 2, 3].map((m) => (
@@ -232,7 +265,7 @@ export default function ProgramChairDashboard({ onLogout = () => { } }) {
                                                 <XCircleIcon size={14} /> Disapprove
                                             </button>
                                             
-                                            {/* Dynamic color schemes based on active selected Mode */}
+                                            {/* Action Button Layout with tailored color schemas */}
                                             {sub.mode === 1 ? (
                                                 <button
                                                     onClick={() => handleApprove(sub.id)}
