@@ -10,6 +10,8 @@ const STATUS_STYLES = {
     "ADVISER APPROVED": "bg-emerald-100 text-emerald-700",
     "DEAN ENDORSED": "bg-blue-100 text-blue-700",
     COMPLETED: "bg-emerald-100 text-emerald-700",
+    "AWAITING_CHAIR_REVIEW": "bg-yellow-100 text-yellow-800 border border-yellow-200", 
+    "FORWARDED-DEAN": "bg-orange-100 text-orange-700 border border-orange-200",
 };
 
 export default function StatusBadge({ status }) {
