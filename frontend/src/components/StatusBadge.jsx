@@ -1,26 +1,30 @@
 import React from "react";
 
-const STATUS_STYLES = {
-    SUBMITTED: "bg-slate-100 text-slate-600",
-    "FORWARDED-FREC": "bg-violet-100 text-violet-700",
-    "CERT GENERATED": "bg-emerald-100 text-emerald-700",
-    "FOR REVIEW": "bg-amber-100 text-amber-700",
-    DISAPPROVED: "bg-red-100 text-red-700",
-    APPROVED: "bg-emerald-100 text-emerald-700",
-    "ADVISER APPROVED": "bg-emerald-100 text-emerald-700",
-    "DEAN ENDORSED": "bg-blue-100 text-blue-700",
-    COMPLETED: "bg-emerald-100 text-emerald-700",
-    "AWAITING_CHAIR_REVIEW": "bg-yellow-100 text-yellow-800 border border-yellow-200", 
-    "FORWARDED-DEAN": "bg-orange-100 text-orange-700 border border-orange-200",
+export const SYSTEM_STATUSES = {
+  "SUBMITTED":        { label: "SUBMITTED",        color: "#374151", bg: "#F3F4F6" },
+  "UNDER REVIEW":     { label: "UNDER REVIEW",     color: "#92400E", bg: "#FEF3C7" },
+  "ADVISER APPROVED": { label: "ADVISER APPROVED", color: "#065F46", bg: "#D1FAE5" },
+  "FORWARDED-FREC":   { label: "FORWARDED-FREC",   color: "#5B21B6", bg: "#EDE9FE" },
+  "FREC APPROVED":    { label: "FREC APPROVED",    color: "#065F46", bg: "#D1FAE5" },
+  "FREC DISAPPROVED": { label: "FREC DISAPPROVED", color: "#991B1B", bg: "#FEE2E2" },
+  "CERT GENERATED":   { label: "CERT GENERATED",   color: "#065F46", bg: "#D1FAE5" },
+  "FORWARDED-PC":     { label: "FORWARDED-PC",     color: "#1E40AF", bg: "#DBEAFE" },
+  "PC APPROVED":      { label: "PC APPROVED",      color: "#065F46", bg: "#D1FAE5" },
+  "FORWARDED-DEAN":   { label: "FORWARDED-DEAN",   color: "#5B21B6", bg: "#EDE9FE" },
+  "DEAN ENDORSED":    { label: "DEAN ENDORSED",    color: "#1E40AF", bg: "#DBEAFE" },
+  "FOR REVIEW":       { label: "FOR REVIEW",       color: "#92400E", bg: "#FEF3C7" },
+  "DISAPPROVED":      { label: "DISAPPROVED",      color: "#991B1B", bg: "#FEE2E2" },
+  "APPROVED":         { label: "APPROVED",         color: "#065F46", bg: "#D1FAE5" },
 };
 
 export default function StatusBadge({ status }) {
-    const style = STATUS_STYLES[status] || "bg-slate-100 text-slate-600";
+    const config = SYSTEM_STATUSES[status] || SYSTEM_STATUSES["SUBMITTED"];
     return (
         <span
-            className={`inline-block rounded-md px-2.5 py-1 text-[11px] font-semibold tracking-wide ${style}`}
+            className="inline-block rounded-md px-2.5 py-1 text-[11px] font-semibold tracking-wide"
+            style={{ backgroundColor: config.bg, color: config.color }}
         >
-            {status}
+            {config.label}
         </span>
     );
 }

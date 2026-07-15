@@ -46,6 +46,7 @@ export default function DashboardLayout({
     activeTab = 0,
     onTabChange = () => { },
     showTabs = true,
+    topBarTitle,
     showAddButton = false,
     onAddClick = () => { },
     sidebarIcons,
@@ -81,14 +82,22 @@ export default function DashboardLayout({
 
                 <main className="flex-1 px-0 pb-6 pt-0">
                     <div className="sticky top-0 z-10 border-b border-slate-200 bg-[#f7f7f8] px-8 pt-0">
-                        <DashboardTabsBar
-                            tabs={tabs}
-                            activeTab={activeTab}
-                            onTabChange={onTabChange}
-                            showAddButton={resolvedShowAddButton}
-                            onAddClick={onAddClick}
-                            role={role}
-                        />
+                        {showTabs ? (
+                            <DashboardTabsBar
+                                tabs={tabs}
+                                activeTab={activeTab}
+                                onTabChange={onTabChange}
+                                showAddButton={resolvedShowAddButton}
+                                onAddClick={onAddClick}
+                                role={role}
+                            />
+                        ) : (
+                            <div className="flex min-h-[3.25rem] items-center">
+                                <h1 className="!m-0 !text-base !font-semibold !text-slate-800">
+                                    {topBarTitle}
+                                </h1>
+                            </div>
+                        )}
                     </div>
 
                     <div className="max-h-[calc(100vh-7rem)] overflow-y-auto px-8 pr-2 pt-3">
