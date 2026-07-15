@@ -67,8 +67,8 @@ export default function StudentDashboard({
       <div className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-[#7a1f2b] to-[#4a1319] px-8 py-6 text-white">
         <h1 className="!m-0 !text-xl !font-bold !text-white">Welcome, {user.name}!</h1>
         <p className="mt-1 max-w-xl text-sm text-white/85">
-          Track your certification requests, monitor approval progress, and stay updated
-          on every step of the review process.
+          This is CertTrack, your certification monitoring dashboard. 
+          Track document submissions, monitor approval status, and manage the certification workflow.
         </p>
         <div className="absolute right-8 top-1/2 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white/40 text-lg font-bold">
           {user.initials}
