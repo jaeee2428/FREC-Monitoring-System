@@ -24,17 +24,33 @@ const STUDENT_SIDEBAR_ICONS = [
     { icon: RotateIcon, label: "Workflow Guide" },
 ];
 
+function SidebarIcon({ icon: Icon, active, label, onClick }) {
+    return (
+        <button
+            title={label}
+            onClick={onClick}
+            className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${active
+                ? "bg-[#fbe9e7] text-[#7a1f2b]"
+                : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                }`}
+        >
+            <Icon size={18} />
+        </button>
+    );
+}
+
 export default function DashboardLayout({
     userName,
     userInitials,
     tabs = DEFAULT_TABS,
     activeTab = 0,
     onTabChange = () => { },
+    showTabs = true,
     showAddButton = false,
     onAddClick = () => { },
     sidebarIcons,
     activeSidebarIndex = 0,
-    onLogout,
+    onLogout = () => { },
     role,
     children,
 }) {

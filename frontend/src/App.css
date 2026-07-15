@@ -23,12 +23,12 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 28px
+  gap: 22px
 }
 
 .brand-icon {
-  width: 52px;
-  height: 52px;
+  width: 55px;
+  height: 55px;
   border-radius: 50%;
   background: #7f1515;
   color: #ffffff;
@@ -46,18 +46,18 @@
 .brand-title-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 5px;
   align-items: center;
 }
 
 .brand-title {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: #7f1515;
 }
 
 .brand-subtitle {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
   color: #1a1a1a;
 }
@@ -66,7 +66,7 @@
   margin: 6px 0 0;
   color: #6b6375;
   font-size: 15px;
-  line-height: 1.6;
+  line-height: 1.1;
 }
 
 .auth-panel {
@@ -87,18 +87,20 @@
 
 .auth-card-header {
   display: grid;
-  gap: 12px;
+  gap: 18px;
+  margin-bottom: 8px;
 }
 
 .auth-card h2 {
   margin: 0;
+  line-height: 1.9;
   font-size: 26px;
   color: #1c1c1c;
 }
 
 .auth-card p {
   margin: 0;
-  line-height: 1.7;
+  line-height: 1.9;
   color: #555069;
   max-width: 720px;
   font-size: 15px;
@@ -198,7 +200,6 @@
 }
 
 .login-shell::after {
-  content: 'Do not sell or share my personal info';
   font-size: 12px;
   color: #9a9a9a;
   margin-top: 16px;
@@ -213,8 +214,8 @@
   .auth-header {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    margin-bottom: 20px;
+    gap: 12px;
+    margin-bottom: 28px;
   }
 
   .account-item {
