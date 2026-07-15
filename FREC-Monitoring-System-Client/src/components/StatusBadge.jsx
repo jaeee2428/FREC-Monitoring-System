@@ -1,6 +1,6 @@
 
 
-export const SYSTEM_STATUSES = {
+const SYSTEM_STATUSES = {
   "SUBMITTED":        { label: "SUBMITTED",        color: "#374151", bg: "#F3F4F6" },
   "UNDER REVIEW":     { label: "UNDER REVIEW",     color: "#92400E", bg: "#FEF3C7" },
   "ADVISER APPROVED": { label: "ADVISER APPROVED", color: "#065F46", bg: "#D1FAE5" },
