@@ -4,41 +4,26 @@ import {
     FileTextIcon,
     CheckCircleIcon,
     RotateIcon,
-    LogOutIcon,
-    BellIcon,
-    PlusIcon,
 } from "../components/icons";
+import DashboardHeader from "./components/DashboardHeader";
+import DashboardSidebar from "./components/DashboardSidebar";
+import DashboardTabsBar from "./components/DashboardTabsBar";
+import DashboardFooter from "./components/DashboardFooter";
 
 const DEFAULT_TABS = ["Thesis Certification", "Research Certification", "Project Endorsement"];
 
-const DEFAULT_SIDEBAR_ICONS = [
+const ADVISER_SIDEBAR_ICONS = [
     { icon: HomeIcon, label: "Home" },
     { icon: FileTextIcon, label: "Documents" },
     { icon: CheckCircleIcon, label: "Review" },
-    { icon: RotateIcon, label: "History" },
+    { icon: RotateIcon, label: "Workflow Guide" },
 ];
 
-// 1. ADDED "onClick" TO THE PROPS LIST HERE
-function SidebarIcon({ icon: Icon, active, label, onClick }) {
-    return (
-        <button
-            title={label}
-            onClick={onClick} // 2. ADDED "onClick={onClick}" HERE TO ACTIVATE IT
-            type="button"
-            className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${active
-                ? "bg-[#fbe9e7] text-[#7a1f2b]"
-                : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                }`}
-        >
-            <Icon size={18} />
-        </button>
-    );
-}
+const STUDENT_SIDEBAR_ICONS = [
+    { icon: HomeIcon, label: "Home" },
+    { icon: RotateIcon, label: "Workflow Guide" },
+];
 
-/**
- * Shared shell for every role's dashboard: top bar, sidebar, tabs, and footer.
- * Each role page supplies its own header/content via `children`.
- */
 export default function DashboardLayout({
     userName,
     userInitials,
@@ -47,17 +32,20 @@ export default function DashboardLayout({
     onTabChange = () => { },
     showAddButton = false,
     onAddClick = () => { },
-    sidebarIcons = DEFAULT_SIDEBAR_ICONS,
+    sidebarIcons,
     activeSidebarIndex = 0,
     onLogout,
+    role = "adviser",
     children,
 }) {
+    const resolvedSidebarIcons = sidebarIcons ?? (role === "student" ? STUDENT_SIDEBAR_ICONS : ADVISER_SIDEBAR_ICONS);
+    const resolvedShowAddButton = role === "student" ? false : (showAddButton ?? true);
+
     return (
         <div
-            className="bg-[#f7f7f8] font-sans text-slate-800"
+            className="h-screen overflow-hidden bg-[#f7f7f8] font-sans text-slate-800"
             style={{
                 width: "100vw",
-                minHeight: "100vh",
                 position: "relative",
                 left: "50%",
                 transform: "translateX(-50%)",
@@ -66,86 +54,34 @@ export default function DashboardLayout({
                 flexDirection: "column",
             }}
         >
-            {/* Top bar */}
-            <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
-                <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#7a1f2b] text-xs font-bold text-white">
-                        CT
-                    </div>
-                    <span className="text-sm">
-                        <span className="font-bold text-[#7a1f2b]">CertTrack:</span>{" "}
-                        <span className="text-slate-700">Certification Monitoring and Tracking System</span>
-                    </span>
-                </div>
-                <div className="flex items-center gap-4">
-                    <button className="relative text-slate-500 hover:text-slate-700">
-                        <BellIcon size={18} />
-                        <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-[#7a1f2b]" />
-                    </button>
-                    <div className="flex items-center gap-2">
-                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#7a1f2b] text-[11px] font-bold text-white">
-                            {userInitials}
-                        </div>
-                        <span className="text-sm font-medium text-slate-700">{userName}</span>
-                    </div>
-                </div>
-            </header>
+            <DashboardHeader userName={userName} userInitials={userInitials} />
 
-            <div className="flex flex-1">
-                {/* Sidebar */}
-                <aside className="flex w-16 flex-col items-center justify-between border-r border-slate-200 bg-white py-4">
-                    <div className="flex flex-col gap-2">
-                        {sidebarIcons.map((item, i) => (
-                            <SidebarIcon
-                                key={item.label}
-                                icon={item.icon}
-                                label={item.label}
-                                active={i === activeSidebarIndex}
-                            />
-                        ))}
+            <div className="flex flex-1 overflow-hidden">
+                <DashboardSidebar
+                    sidebarIcons={resolvedSidebarIcons}
+                    activeSidebarIndex={activeSidebarIndex}
+                    onLogout={onLogout}
+                />
+
+                <main className="flex-1 px-0 pb-6 pt-0">
+                    <div className="sticky top-0 z-10 border-b border-slate-200 bg-[#f7f7f8] px-8 pt-0">
+                        <DashboardTabsBar
+                            tabs={tabs}
+                            activeTab={activeTab}
+                            onTabChange={onTabChange}
+                            showAddButton={resolvedShowAddButton}
+                            onAddClick={onAddClick}
+                            role={role}
+                        />
                     </div>
 
-                    {/* This onClick={onLogout} will now fire correctly! */}
-                    <SidebarIcon icon={LogOutIcon} label="Log out" onClick={onLogout} />
-                </aside>
-
-                {/* Main content */}
-                <main className="flex-1 px-8 py-6">
-                    {/* Tabs + optional Add button */}
-                    <div className="mb-5 flex items-center justify-between">
-                        <nav className="flex gap-8">
-                            {tabs.map((tab, i) => (
-                                <button
-                                    key={tab}
-                                    onClick={() => onTabChange(i)}
-                                    className={`flex items-center gap-1.5 border-b-2 pb-2 text-sm font-medium transition-colors ${activeTab === i
-                                        ? "border-[#7a1f2b] text-[#7a1f2b]"
-                                        : "border-transparent text-slate-500 hover:text-slate-700"
-                                        }`}
-                                >
-                                    <FileTextIcon size={14} />
-                                    {tab}
-                                </button>
-                            ))}
-                        </nav>
-                        {showAddButton && (
-                            <button
-                                onClick={onAddClick}
-                                className="flex items-center gap-1.5 rounded-lg bg-[#7a1f2b] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#671a24]"
-                            >
-                                <PlusIcon size={15} /> Add
-                            </button>
-                        )}
+                    <div className="max-h-[calc(100vh-7rem)] overflow-y-auto px-8 pr-2 pt-3">
+                        {children}
                     </div>
-
-                    {/* Role-specific content goes here */}
-                    {children}
                 </main>
             </div>
 
-            <footer className="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-400">
-                © Developed by the University ICT Development Office. All rights reserved 2025.
-            </footer>
+            <DashboardFooter />
         </div>
     );
 }

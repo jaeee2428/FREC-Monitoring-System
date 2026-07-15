@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-import { isAdviserRole } from './data/accounts.js'
+import { isAdviserRole, isStudentRole } from './data/accounts.js'
 import AdviserDashboard from './pages/adviser/dashboard.jsx'
+import StudentDashboard from './pages/student/dashboard.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 
 const SESSION_KEY = 'mockSession'
@@ -52,6 +53,10 @@ function App() {
 
   if (session && isAdviserRole(session.role)) {
     return <AdviserDashboard user={session} onLogout={handleSignOut} />
+  }
+
+  if (session && isStudentRole(session.role)) {
+    return <StudentDashboard user={session} onLogout={handleSignOut} />
   }
 
   return <LoginPage onSignIn={handleSignIn} />

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import AuthCard from '../components/AuthCard'
-import { accounts, defaultAccount, isAdviserRole } from '../data/accounts'
+import { accounts, defaultAccount, isAdviserRole, isStudentRole } from '../data/accounts'
 
 function LoginPage({ onSignIn }) {
     const [selectedAccount, setSelectedAccount] = useState(() => {
@@ -23,7 +23,7 @@ function LoginPage({ onSignIn }) {
     const handleAccountClick = (account) => {
         setSelectedAccount(account)
 
-        if (isAdviserRole(account.role)) {
+        if (isAdviserRole(account.role) || isStudentRole(account.role)) {
             onSignIn(account)
         }
     }
@@ -72,7 +72,9 @@ function LoginPage({ onSignIn }) {
                 <div className="session-note">
                     {isAdviserRole(selectedAccount.role)
                         ? `Adviser account selected — click "${selectedAccount.name}" to open the dashboard.`
-                        : `Mock signed-in account: ${selectedAccount.name} — ${selectedAccount.email}`}
+                        : isStudentRole(selectedAccount.role)
+                            ? `Student account selected — click "${selectedAccount.name}" to open the dashboard.`
+                            : `Mock signed-in account: ${selectedAccount.name} — ${selectedAccount.email}`}
                 </div>
             </div>
         </div>
