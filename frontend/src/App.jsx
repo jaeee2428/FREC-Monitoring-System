@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react'
 import './App.css'
+<<<<<<< HEAD
 import { isAdviserRole, isProgramChairRole } from './data/accounts.js'
 import AdviserDashboard from './pages/adviser/dashboard.jsx'
 import ProgramChairDashboard from './pages/program-chair/dashboard.jsx'
+=======
+import { isAdviserRole } from './data/accounts.js'
+import AdviserDashboard from './pages/adviser/Dashboard.jsx'
+>>>>>>> origin/dev
 import LoginPage from './pages/LoginPage.jsx'
 
 const SESSION_KEY = 'mockSession'
