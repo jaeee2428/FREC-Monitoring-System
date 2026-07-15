@@ -7,7 +7,7 @@ export default function DashboardTabsBar({
   onTabChange,
   showAddButton,
   onAddClick,
-  role = "adviser",
+  role,
 }) {
   const isStudentRole = role === "student";
   const shouldShowAddButton = !isStudentRole && showAddButton;
