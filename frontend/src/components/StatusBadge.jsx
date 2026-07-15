@@ -7,6 +7,7 @@ const STATUS_STYLES = {
     "FOR REVIEW": "bg-amber-100 text-amber-700",
     DISAPPROVED: "bg-red-100 text-red-700",
     APPROVED: "bg-emerald-100 text-emerald-700",
+    FORWARDED: "bg-violet-100 text-violet-700",
     "ADVISER APPROVED": "bg-emerald-100 text-emerald-700",
     "DEAN ENDORSED": "bg-blue-100 text-blue-700",
     COMPLETED: "bg-emerald-100 text-emerald-700",

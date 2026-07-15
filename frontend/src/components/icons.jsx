@@ -88,3 +88,10 @@ export const InfoIcon = (props) => (
         <path d="M12 8h.01" />
     </IconBase>
 );
+
+export const EyeIcon = (props) => (
+    <IconBase {...props}>
+        <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
+        <circle cx="12" cy="12" r="3" />
+    </IconBase>
+);
