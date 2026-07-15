@@ -1,4 +1,3 @@
-
 import DashboardHeader from "./components/DashboardHeader";
 import DashboardSidebar from "./components/DashboardSidebar";
 import DashboardTabsBar from "./components/DashboardTabsBar";
@@ -11,13 +10,13 @@ export default function DashboardLayout({
     userInitials,
     tabs = DEFAULT_TABS,
     activeTab = 0,
-    onTabChange = () => { },
+    onTabChange = () => {},
     showTabs = true,
     showAddButton = false,
-    onAddClick = () => { },
+    onAddClick = () => {},
     sidebarIcons,
     activeSidebarIndex = 0,
-    onLogout = () => { },
+    onLogout = () => {},
     role,
     children,
 }) {
