@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import AuthCard from '../components/AuthCard'
-import { accounts, defaultAccount, isAdviserRole, isStudentRole, isProgramChairRole, isDeanRole, isReviewerRole, isITAdminRole } from '../data/accounts'
+import { accounts, defaultAccount, isAdviserRole, isStudentRole, isProgramChairRole, isDeanRole, isReviewerRole, isITAdminRole, ROLE_NAMES } from '../data/accounts'
 
 function LoginPage({ onSignIn }) {
     const [selectedAccount, setSelectedAccount] = useState(() => {
@@ -43,7 +43,7 @@ function LoginPage({ onSignIn }) {
                 </header>
                 <AuthCard
                     title="Sign in with Google"
-                    description="Access is restricted to whitelisted institutional Google accounts only. Select your account below to continue."
+                    description="Select a mockup profile below to access the role's dashboard."
                 >
                     <div className="account-list">
                         {accounts.map((account) => (
@@ -58,7 +58,7 @@ function LoginPage({ onSignIn }) {
                                     <span className="account-name">{account.name}</span>
                                     <span className="account-email">{account.email}</span>
                                 </div>
-                                <span className="account-role">{account.role}</span>
+                                <span className="account-role">{ROLE_NAMES[account.role] || account.role}</span>
                                 <span className="account-chevron">›</span>
                             </button>
                         ))}

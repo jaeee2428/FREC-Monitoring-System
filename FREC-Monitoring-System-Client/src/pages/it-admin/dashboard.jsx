@@ -3,7 +3,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.jsx";
 import { StatCard } from "../../components/StatCard.jsx";
 import { FileTextIcon, HomeIcon, RotateIcon } from "../../components/icons.jsx";
 import WorkflowGuide from "../../components/WorkflowGuide.jsx";
-import { accounts } from "../../data/accounts.js";
+import { accounts, ROLE_NAMES } from "../../data/accounts.js";
 
 export default function ITAdminDashboard({ user = { name: "Admin Dela Rosa", initials: "AD" }, onLogout = () => {} }) {
     const [view, setView] = useState("Dashboard");
@@ -63,7 +63,7 @@ export default function ITAdminDashboard({ user = { name: "Admin Dela Rosa", ini
                                         <td className="px-5 py-3 text-slate-500">{account.email}</td>
                                         <td className="px-5 py-3">
                                             <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
-                                                {account.role}
+                                                {ROLE_NAMES[account.role] || account.role}
                                             </span>
                                         </td>
                                         <td className="px-5 py-3">
@@ -116,7 +116,7 @@ export default function ITAdminDashboard({ user = { name: "Admin Dela Rosa", ini
                                     </div>
                                 </div>
                                 <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
-                                    {account.role}
+                                    {ROLE_NAMES[account.role] || account.role}
                                 </span>
                             </div>
                         ))}
