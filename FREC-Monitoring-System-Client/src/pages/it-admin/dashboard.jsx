@@ -8,8 +8,6 @@ import { accounts } from "../../data/accounts.js";
 export default function ITAdminDashboard({ user = { name: "Admin Dela Rosa", initials: "AD" }, onLogout = () => {} }) {
     const [view, setView] = useState("Dashboard");
     const [activeTab, setActiveTab] = useState(0);
-    const [toast] = useState(null);
-
     const totalAccounts = accounts.length;
     const activeAccounts = accounts.length;
     const rolesCount = new Set(accounts.map((a) => a.role)).size;
@@ -124,12 +122,6 @@ export default function ITAdminDashboard({ user = { name: "Admin Dela Rosa", ini
                         ))}
                     </div>
                 </>
-            )}
-
-            {toast && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm text-white shadow-lg z-50">
-                    {toast}
-                </div>
             )}
         </DashboardLayout>
     );

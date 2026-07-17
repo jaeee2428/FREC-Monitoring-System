@@ -26,6 +26,26 @@ const INITIAL_SUBMISSIONS = [
         status: "SUBMITTED",
         mode: null,
     },
+    {
+        id: "DOC-2024-009",
+        title: "AI Ethics Research Paper",
+        student: "Ana Gonzales",
+        studentNo: "2021-00567",
+        program: "BS Computer Science",
+        submitted: "2024-06-07",
+        status: "FORWARDED-FREC",
+        mode: 2,
+    },
+    {
+        id: "DOC-2024-010",
+        title: "Network Security Assessment",
+        student: "Ben Torres",
+        studentNo: "2022-00341",
+        program: "BS Information Technology",
+        submitted: "2024-06-03",
+        status: "DISAPPROVED",
+        mode: 1,
+    },
 ];
 
 // Mock data for the shared "All Documents" view
@@ -64,8 +84,8 @@ export default function AdviserDashboard({ user = { name: "Dr. Elena Reyes", ini
     const [toast, setToast] = useState(null);
 
     const pendingCount = submissions.filter((s) => s.status === "SUBMITTED").length;
-    const forwardedCount = submissions.filter((s) => s.status === "FORWARDED-FREC").length + 1;
-    const disapprovedCount = submissions.filter((s) => s.status === "DISAPPROVED").length + 1;
+    const forwardedCount = submissions.filter((s) => s.status === "FORWARDED-FREC").length;
+    const disapprovedCount = submissions.filter((s) => s.status === "DISAPPROVED").length;
 
     const setMode = (id, mode) => {
         setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, mode } : s)));
@@ -111,7 +131,7 @@ export default function AdviserDashboard({ user = { name: "Dr. Elena Reyes", ini
             activeTab={activeTab}
             onTabChange={setActiveTab}
             showTabs={view === "Dashboard"}
-            showAddButton={view === "Dashboard" || view === "Dashboard"}
+            showAddButton={view === "Dashboard"}
             onAddClick={() => showToast("Add document form would open here.")}
             sidebarIcons={sidebarIcons}
             activeSidebarIndex={activeSidebarIndex}

@@ -2,13 +2,7 @@ import { useState } from "react";
 import { StatCard } from "../../components/StatCard.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import { XCircleIcon, ArrowRightCircleIcon, CheckCircleIcon } from "../../components/icons.jsx";
-
-function ModeBadge({ mode }) {
-    if (mode === 2) {
-        return <span className="rounded border border-sky-200 bg-sky-50 px-2.5 py-0.5 text-xs font-bold text-sky-700">Mode 2</span>;
-    }
-    return <span className="rounded border border-purple-200 bg-purple-50 px-2.5 py-0.5 text-xs font-bold text-purple-700">Mode 3</span>;
-}
+import ModeBadge from "../../components/ModeBadge.jsx";
 
 export default function DeanApprovals({ submissions, onApprove, onDisapprove }) {
     const [filter, setFilter] = useState("All");

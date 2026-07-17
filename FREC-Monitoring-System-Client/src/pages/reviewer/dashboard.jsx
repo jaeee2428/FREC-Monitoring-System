@@ -71,7 +71,7 @@ export default function ReviewerDashboard({ user = { name: "Prof. Ramon Dela Cru
         showToast(`"${sub.title}" has been disapproved.`);
     };
 
-    const pendingList = submissions.filter((s) => s.status === "DEAN ENDORSED");
+    const pendingList = submissions.filter((s) => s.status === "DEAN ENDORSED" || s.status === "FOR REVIEW");
     const queueLabel = "My Queue";
 
     const sidebarIcons = [
@@ -169,12 +169,21 @@ export default function ReviewerDashboard({ user = { name: "Prof. Ramon Dela Cru
                                             >
                                                 <XCircleIcon size={14} /> Disapprove
                                             </button>
-                                            <button
-                                                onClick={() => handleApprove(sub.id)}
-                                                className="flex items-center gap-1.5 rounded-md bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 text-xs font-semibold transition-colors shadow-sm"
-                                            >
-                                                <ArrowRightCircleIcon size={14} /> Accept for Review
-                                            </button>
+                                            {sub.status === "DEAN ENDORSED" ? (
+                                                <button
+                                                    onClick={() => handleApprove(sub.id)}
+                                                    className="flex items-center gap-1.5 rounded-md bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 text-xs font-semibold transition-colors shadow-sm"
+                                                >
+                                                    <ArrowRightCircleIcon size={14} /> Accept for Review
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleApprove(sub.id)}
+                                                    className="flex items-center gap-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 text-xs font-semibold transition-colors shadow-sm"
+                                                >
+                                                    <CheckCircleIcon size={14} /> Confirm FICS FREC
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
