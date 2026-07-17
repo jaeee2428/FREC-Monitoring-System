@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import './App.css'
 import { isAdviserRole, isStudentRole, isProgramChairRole, isDeanRole, isReviewerRole, isITAdminRole } from './data/accounts.js'
-import AdviserDashboard from './pages/adviser/Dashboard.jsx'
+import AdviserDashboard from './pages/adviser/dashboard.jsx'
 import StudentDashboard from './pages/student/dashboard.jsx'
 import ProgramChairDashboard from './pages/program-chair/program-chair-dashboard.jsx'
 import DeanDashboard from './pages/dean/dashboard.jsx'
