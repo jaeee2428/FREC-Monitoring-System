@@ -14,6 +14,7 @@ import {
     CheckCircleIcon,
     RotateIcon,
 } from "../../components/icons.jsx";
+import ModeBadge from "../../components/ModeBadge.jsx";
 
 const INITIAL_SUBMISSIONS = [
     {
@@ -58,32 +59,6 @@ const ALL_DOCUMENTS = [
     { id: 7, docId: "DOC-2024-007", title: "Thesis Certification Request", student: "Sofia Bautista", studentNo: "2021-00089", adviser: "Dr. Reyes", mode: 1, status: "ADVISER APPROVED", dateUpdated: "2024-06-09" },
     { id: 8, docId: "DOC-2024-008", title: "Research Certification", student: "Paolo Villanueva", studentNo: "2020-00445", adviser: "Dr. Lim", mode: 3, status: "DEAN ENDORSED", dateUpdated: "2024-06-11" },
 ];
-
-// Reusable Multi-Color Badge Component
-function ModeBadge({ mode }) {
-    if (mode === 1) {
-        return (
-            <span className="rounded border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
-                Mode 1
-            </span>
-        );
-    }
-    if (mode === 2) {
-        return (
-            <span className="rounded border border-sky-200 bg-sky-50 px-2.5 py-0.5 text-xs font-bold text-sky-700">
-                Mode 2
-            </span>
-        );
-    }
-    if (mode === 3) {
-        return (
-            <span className="rounded border border-purple-200 bg-purple-50 px-2.5 py-0.5 text-xs font-bold text-purple-700">
-                Mode 3
-            </span>
-        );
-    }
-    return null;
-}
 
 function ModeButton({ mode, active, onClick }) {
     // Dynamic styles when setting a mode manually

@@ -102,7 +102,7 @@ export default function WorkflowGuide() {
             <div>
                 <h1 className="!text-lg !font-bold !text-slate-800">Workflow Guide</h1>
                 <p className="mt-0.5 text-sm text-slate-500">
-                    The certification workflow has three modes. The mode is selected by the Adviser when forwarding to FREC. Each mode determines the routing path for the generated certificate.
+                    Each mode routes the certificate through a different approval chain. The mode is selected by the Adviser when forwarding to FREC.
                 </p>
             </div>
 
