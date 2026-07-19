@@ -1,5 +1,6 @@
 import { useState } from "react";
 import StatusBadge from "./StatusBadge";
+import ModeBadge from "./ModeBadge";
 
 const FILTERS = ["All", "Active", "Completed", "Disapproved"];
 
@@ -74,9 +75,7 @@ export default function AllDocumentsView({ documents = [] }) {
                                         <td className="px-5 py-4 text-slate-500">{doc.adviser}</td>
                                         <td className="px-5 py-4">
                                             {doc.mode ? (
-                                                <span className={{ 1: "text-purple-800", 2: "text-blue-800", 3: "text-amber-900" }[doc.mode]}>
-                                                    Mode {doc.mode}
-                                                </span>
+                                                <ModeBadge mode={doc.mode} />
                                             ) : (
                                                 <span className="text-slate-800">—</span>
                                             )}

@@ -77,8 +77,7 @@ function ModeButton({ mode, active, onClick }) {
     );
 }
 
-export default function AdviserDashboard({ user = { name: "Dr. Elena Reyes", initials: "DE" }, onLogout = () => { } }) {
-    const [view, setView] = useState("home"); // "home" | "documents"
+export default function AdviserDashboard({ user = { name: "Dr. Elena Reyes", initials: "DE" }, onLogout = () => { }, view, setView }) {
     const [activeTab, setActiveTab] = useState(0);
     const [submissions, setSubmissions] = useState(INITIAL_SUBMISSIONS);
     const [toast, setToast] = useState(null);
@@ -131,6 +130,7 @@ export default function AdviserDashboard({ user = { name: "Dr. Elena Reyes", ini
             activeTab={activeTab}
             onTabChange={setActiveTab}
             showTabs={view === "Dashboard"}
+            title={view === "All Documents" ? "All Documents" : view === "Approvals" ? "Pending Approvals" : view === "Workflow Guide" ? "Workflow Guide" : ""}
             showAddButton={view === "Dashboard"}
             onAddClick={() => showToast("Add document form would open here.")}
             sidebarIcons={sidebarIcons}

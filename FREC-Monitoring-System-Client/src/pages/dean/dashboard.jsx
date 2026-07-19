@@ -22,8 +22,7 @@ const ALL_DOCUMENTS = [
     { id: 4, docId: "DOC-2024-004", title: "Thesis Certification Request", student: "Carlos Mendoza", studentNo: "2020-00312", adviser: "Dr. Reyes", mode: 2, status: "DISAPPROVED", dateUpdated: "2024-06-09" },
 ];
 
-export default function DeanDashboard({ user = { name: "Dr. Amalia Cruz", initials: "DA" }, onLogout = () => {} }) {
-    const [view, setView] = useState("Dashboard");
+export default function DeanDashboard({ user = { name: "Dr. Amalia Cruz", initials: "DA" }, onLogout = () => {}, view, setView }) {
     const [activeTab, setActiveTab] = useState(0);
     const [submissions, setSubmissions] = useState([
         { id: "DOC-2026-3342", title: "Local IoT Smart Irrigation System for Campus Grounds", student: "Maria Clara", studentNo: "2021-09823", program: "BS Information Technology", submitted: "2026-07-14", status: "FORWARDED-DEAN", mode: 2 },
@@ -90,6 +89,7 @@ export default function DeanDashboard({ user = { name: "Dr. Amalia Cruz", initia
             activeTab={activeTab}
             onTabChange={setActiveTab}
             showTabs={view === "Dashboard"}
+            title={view === "All Documents" ? "All Documents" : view === queueLabel ? queueLabel : view === "Workflow Guide" ? "Workflow Guide" : ""}
             showAddButton={false}
             sidebarIcons={sidebarIcons}
             activeSidebarIndex={activeSidebarIndex}
