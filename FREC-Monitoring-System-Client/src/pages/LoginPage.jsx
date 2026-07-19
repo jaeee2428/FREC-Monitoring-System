@@ -23,6 +23,11 @@ function LoginPage({ onSignIn }) {
     const handleAccountClick = (account) => {
         setSelectedAccount(account)
       
+        if (account.whitelisted === false) {
+            alert(`Access Denied: ${account.name} (${account.email}) is blocked/not whitelisted by IT Admin.`);
+            return;
+        }
+
         if (isAdviserRole(account.role) || isStudentRole(account.role) || isProgramChairRole(account.role) || isDeanRole(account.role) || isReviewerRole(account.role) || isITAdminRole(account.role)) {
             onSignIn(account)
         }

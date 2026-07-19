@@ -14,14 +14,6 @@ Stores the role configurations.
 | `id` | `INT` | `PRIMARY KEY` | Unique role identifier (e.g. 1 for Student, 2 for Adviser, etc.). |
 | `label` | `VARCHAR(100)` | `NOT NULL` | Display friendly name: `Student`, `Program Chair`, etc. |
 
-### Entity: `PROGRAM`
-Stores university degree programs.
-
-| Column | Type | Constraints | Description |
-| :--- | :--- | :--- | :--- |
-| `id` | `INT` | `PRIMARY KEY`, `AUTO_INCREMENT` | Unique identifier. |
-| `name` | `VARCHAR(150)` | `NOT NULL`, `UNIQUE` | e.g. "BS Computer Science", "BS Information Technology". |
-
 ### Entity: `USER_ACCOUNT`
 Represents users logging into the system.
 
@@ -31,7 +23,7 @@ Represents users logging into the system.
 | `name` | `VARCHAR(150)` | `NOT NULL` | Full name of the user. |
 | `email` | `VARCHAR(150)` | `NOT NULL`, `UNIQUE` | University email. |
 | `role_id` | `INT` | `FOREIGN KEY`, `NOT NULL` | References `ROLE(id)`. |
-| `program_id` | `INT` | `FOREIGN KEY`, `NULL` | References `PROGRAM(id)`. Null for admin, dean, or global reviewers. |
+| `program` | `VARCHAR(150)` | `NULL` | Optional degree program (e.g., "BS Computer Science") set in profile. |
 | `whitelisted` | `BOOLEAN` | `DEFAULT TRUE` | Whitelisting toggle for user access control. |
 
 ### Entity: `DOCUMENT`
@@ -68,14 +60,11 @@ Tracks workflow state transitions (e.g. transition from `submitted` -> `approved
 1. **One-to-Many (`ROLE` to `USER_ACCOUNT`)**:
    - A single role (e.g., `adviser`) can be assigned to multiple users.
    
-2. **One-to-Many (`PROGRAM` to `USER_ACCOUNT`)**:
-   - Multiple users can belong to a single program (e.g., multiple students enrolled in "BS Computer Science").
-   
-3. **One-to-Many (`USER_ACCOUNT` to `DOCUMENT` - Student)**:
+2. **One-to-Many (`USER_ACCOUNT` to `DOCUMENT` - Student)**:
    - A student (`USER_ACCOUNT`) can submit multiple certification requests over their academic stay.
    
-4. **One-to-Many (`USER_ACCOUNT` to `DOCUMENT` - Adviser)**:
+3. **One-to-Many (`USER_ACCOUNT` to `DOCUMENT` - Adviser)**:
    - An adviser can be assigned to guide and approve multiple student documents.
    
-5. **One-to-Many (`DOCUMENT` to `DOCUMENT_HISTORY`)**:
+4. **One-to-Many (`DOCUMENT` to `DOCUMENT_HISTORY`)**:
    - Each document accumulates history logs as it goes through the multi-stage approval workflow.

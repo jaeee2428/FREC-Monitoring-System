@@ -99,17 +99,10 @@ function ModeCard({ mode }) {
 export default function WorkflowGuide() {
     return (
         <div className="space-y-5 pb-8">
-            <div>
-                <h1 className="!text-lg !font-bold !text-slate-800">Workflow Guide</h1>
-                <p className="mt-0.5 text-sm text-slate-500">
-                    Each mode routes the certificate through a different approval chain. The mode is selected by the Adviser when forwarding to FREC.
-                </p>
-            </div>
-
-            <div className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-xs text-blue-700">
-                <InfoIcon size={14} className="mt-0.5 shrink-0 text-blue-400" />
+            <div className="flex items-start gap-2 rounded-lg border !border-blue-200 !bg-blue-50 px-4 py-3 text-xs !text-blue-700">
+                <InfoIcon size={14} className="mt-0.5 shrink-0 !text-blue-400" />
                 <p>
-                    Note: The certification workflow has three modes. The mode is selected by the Adviser when forwarding to FREC. Each mode determines the routing path for the generated certificate.
+                    The certification workflow has three modes. The mode is selected by the Adviser when forwarding to FREC. Each mode determines the routing path for the generated certificate.
                 </p>
             </div>
 

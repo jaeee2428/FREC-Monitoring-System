@@ -77,7 +77,7 @@ export default function ReviewerApprovals({ submissions, onApprove, onDisapprove
                                     <div className="mt-2 flex items-center gap-2 text-xs text-slate-400">
                                         <span>ID: {sub.id}</span>
                                         <span>·</span>
-                                        <ModeBadge />
+                                        <ModeBadge mode={sub.mode} />
                                     </div>
                                 </div>
 
