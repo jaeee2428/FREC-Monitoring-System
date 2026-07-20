@@ -92,3 +92,21 @@ h2 {
 p {
   margin: 0;
 }
+
+/* Custom slim scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #7a1f2b; /* Matches your brand maroon on hover */
+}

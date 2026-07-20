@@ -4,7 +4,7 @@ const MODES = [
     {
         title: "Mode 1",
         route: "Certification — Return to Adviser → PC",
-        headerColor: "text-violet-600",
+        headerColor: "text-[#7a1f2b]",
         steps: [
             { label: "Student", sub: "" },
             { label: "Adviser", sub: "(Approve, Mode 1)" },
@@ -17,7 +17,7 @@ const MODES = [
     {
         title: "Mode 2",
         route: "Certification — Return to PC → Dean",
-        headerColor: "text-sky-600",
+        headerColor: "text-[#7a1f2b]",
         steps: [
             { label: "Student", sub: "" },
             { label: "Adviser", sub: "(Approve, Mode 2)" },
@@ -30,7 +30,7 @@ const MODES = [
     {
         title: "Mode 3",
         route: "Endorsement — Forward to Dean → Reviewer → FICS FREC",
-        headerColor: "text-orange-600",
+        headerColor: "text-[#7a1f2b]",
         steps: [
             { label: "Student", sub: "" },
             { label: "Adviser", sub: "(Approve, Mode 3)" },
