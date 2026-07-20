@@ -22,8 +22,7 @@ const ALL_DOCUMENTS = [
     { id: 4, docId: "DOC-2024-004", title: "Thesis Certification Request", student: "Carlos Mendoza", studentNo: "2020-00312", adviser: "Dr. Reyes", mode: 3, status: "DISAPPROVED", dateUpdated: "2024-06-11" },
 ];
 
-export default function ReviewerDashboard({ user = { name: "Prof. Ramon Dela Cruz", initials: "PR" }, onLogout = () => {} }) {
-    const [view, setView] = useState("Dashboard");
+export default function ReviewerDashboard({ user = { name: "Prof. Ramon Dela Cruz", initials: "PR" }, onLogout = () => {}, view, setView }) {
     const [activeTab, setActiveTab] = useState(0);
     const [submissions, setSubmissions] = useState([
         { id: "DOC-2026-5581", title: "Automated Microgrid Routing in Rural Communities", student: "Paolo Villaluz", studentNo: "2022-10492", program: "BS Electrical Engineering", submitted: "2026-07-15", status: "DEAN ENDORSED", mode: 3 },
@@ -90,6 +89,7 @@ export default function ReviewerDashboard({ user = { name: "Prof. Ramon Dela Cru
             activeTab={activeTab}
             onTabChange={setActiveTab}
             showTabs={view === "Dashboard"}
+            title={view === "All Documents" ? "All Documents" : view === queueLabel ? queueLabel : view === "Workflow Guide" ? "Workflow Guide" : ""}
             showAddButton={false}
             sidebarIcons={sidebarIcons}
             activeSidebarIndex={activeSidebarIndex}
