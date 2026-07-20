@@ -2,6 +2,7 @@ import { useState } from "react";
 import DashboardLayout from "../../layouts/DashboardLayout.jsx";
 import { StatCard } from "../../components/StatCard.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
+import ModeBadge from "../../components/ModeBadge.jsx";
 import AllDocuments from "../../components/AllDocuments.jsx";
 import WorkflowGuide from "../../components/WorkflowGuide.jsx";
 import DeanApprovals from "./approvals.jsx";
@@ -153,12 +154,11 @@ export default function DeanDashboard({ user = { name: "Dr. Amalia Cruz", initia
                                         <p className="mt-1 text-xs text-slate-500">
                                             {sub.student} · {sub.studentNo} · {sub.program}
                                         </p>
+                                        {/* Swapped inline span for reusable ModeBadge component */}
                                         <div className="mt-2 flex items-center gap-2 text-xs text-slate-400">
                                             <span>ID: {sub.id}</span>
                                             <span>·</span>
-                                            <span className={`rounded border px-2.5 py-0.5 text-xs font-bold ${
-                                                sub.mode === 2 ? "border-sky-200 bg-sky-50 text-sky-700" : "border-purple-200 bg-purple-50 text-purple-700"
-                                            }`}>Mode {sub.mode}</span>
+                                            <ModeBadge mode={sub.mode} />
                                         </div>
                                     </div>
 
@@ -182,7 +182,7 @@ export default function DeanDashboard({ user = { name: "Dr. Amalia Cruz", initia
                                             ) : (
                                                 <button
                                                     onClick={() => handleApprove(sub.id)}
-                                                    className="flex items-center gap-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 text-xs font-semibold transition-colors shadow-sm"
+                                                    className="flex items-center gap-1.5 rounded-md bg-[#7a1f2b] hover:bg-[#5a121d] text-white px-3 py-1.5 text-xs font-semibold transition-colors shadow-sm"
                                                 >
                                                     <ArrowRightCircleIcon size={14} /> Issue Endorsement
                                                 </button>
