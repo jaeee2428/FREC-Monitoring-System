@@ -79,8 +79,7 @@ function ModeButton({ mode, active, onClick }) {
     );
 }
 
-export default function ProgramChairDashboard({ user = { name: "Dr. Jose Santos", initials: "DJ" }, onLogout = () => { } }) {
-    const [view, setView] = useState("Dashboard"); 
+export default function ProgramChairDashboard({ user = { name: "Dr. Jose Santos", initials: "DJ" }, onLogout = () => { }, view, setView }) {
     const [activeTab, setActiveTab] = useState(0);
     const [submissions, setSubmissions] = useState(INITIAL_SUBMISSIONS);
     const [toast, setToast] = useState(null);
@@ -145,6 +144,7 @@ export default function ProgramChairDashboard({ user = { name: "Dr. Jose Santos"
             activeTab={activeTab}
             onTabChange={setActiveTab}
             showTabs={view === "Dashboard"}
+            title={view === "All Documents" ? "All Documents" : view === "Approvals" ? "Pending Approvals" : view === "Workflow Guide" ? "Workflow Guide" : ""}
             showAddButton={view === "Dashboard"}
             onAddClick={() => showToast("Add document form coming soon.")}
             sidebarIcons={sidebarIcons}

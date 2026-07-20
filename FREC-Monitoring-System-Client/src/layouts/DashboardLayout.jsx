@@ -18,6 +18,7 @@ export default function DashboardLayout({
     activeSidebarIndex = 0,
     onLogout = () => {},
     role,
+    title = "",
     children,
 }) {
     return (
@@ -43,8 +44,8 @@ export default function DashboardLayout({
                 />
 
                 <main className="flex-1 px-0 pb-6 pt-0">
-                    {showTabs && (
-                        <div className="sticky top-0 z-10 border-b border-slate-200 bg-[#f7f7f8] px-8 pt-0">
+                    {(showTabs || title) && (
+                        <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-8 pt-0">
                             <DashboardTabsBar
                                 tabs={tabs}
                                 activeTab={activeTab}
@@ -52,11 +53,13 @@ export default function DashboardLayout({
                                 showAddButton={showAddButton}
                                 onAddClick={onAddClick}
                                 role={role}
+                                showTabs={showTabs}
+                                title={title}
                             />
                         </div>
                     )}
-
-                    <div className={`${showTabs ? "max-h-[calc(100vh-7rem)]" : "max-h-[calc(100vh-4rem)]"} overflow-y-auto px-8 pr-2 pt-3`}>
+ 
+                    <div className={`${showTabs || title ? "max-h-[calc(100vh-7rem)]" : "max-h-[calc(100vh-4rem)]"} overflow-y-auto px-8 pr-2 pt-3`}>
                         {children}
                     </div>
                 </main>

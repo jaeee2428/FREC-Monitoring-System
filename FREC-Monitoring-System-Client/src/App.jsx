@@ -30,6 +30,7 @@ function readSession() {
 
 function App() {
   const [session, setSession] = useState(readSession)
+  const [view, setView] = useState('Dashboard')
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -49,35 +50,37 @@ function App() {
 
   const handleSignIn = (account) => {
     setSession(account)
+    setView('Dashboard')
   }
 
   const handleSignOut = () => {
     setSession(null)
+    setView('Dashboard')
   }
 
   // 1. If logged in as Adviser, show the Adviser Dashboard
   if (session && isAdviserRole(session.role)) {
-    return <AdviserDashboard user={session} onLogout={handleSignOut} />
+    return <AdviserDashboard user={session} onLogout={handleSignOut} view={view} setView={setView} />
   }
 
   if (session && isStudentRole(session.role)) {
-    return <StudentDashboard user={session} onLogout={handleSignOut} />
+    return <StudentDashboard user={session} onLogout={handleSignOut} view={view} setView={setView} />
   }
 
   if (session && isProgramChairRole(session.role)) { 
-    return <ProgramChairDashboard user={session} onLogout={handleSignOut} />
+    return <ProgramChairDashboard user={session} onLogout={handleSignOut} view={view} setView={setView} />
   }
 
   if (session && isDeanRole(session.role)) {
-    return <DeanDashboard user={session} onLogout={handleSignOut} />
+    return <DeanDashboard user={session} onLogout={handleSignOut} view={view} setView={setView} />
   }
 
   if (session && isReviewerRole(session.role)) {
-    return <ReviewerDashboard user={session} onLogout={handleSignOut} />
+    return <ReviewerDashboard user={session} onLogout={handleSignOut} view={view} setView={setView} />
   }
 
   if (session && isITAdminRole(session.role)) {
-    return <ITAdminDashboard user={session} onLogout={handleSignOut} />
+    return <ITAdminDashboard user={session} onLogout={handleSignOut} view={view} setView={setView} />
   }
 
   // 3. If not logged in at all, show the Login Page
