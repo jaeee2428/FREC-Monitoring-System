@@ -2,7 +2,7 @@
 
 <!-- Briefly describe what this PR does and why it's needed. Link to PBI if applicable. -->
 
-Closes PBI-
+Closes PBI-NN
 
 ---
 
@@ -56,15 +56,16 @@ Closes PBI-
 
 ## How to Test
 
-```bash
-
-```
+1. `cd FREC-Monitoring-System-Client && npm run dev`
+2. Sign in as `<role>` from the account picker
+3. Navigate to …
+4. Verify that …
 
 ---
 
 ## Reviewer Notes
 
-
+<!-- Anything to pay special attention to, known limitations, follow-ups. -->
 
 ---
 
