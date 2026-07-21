@@ -1,4 +1,3 @@
-
 import { FileTextIcon, PlusIcon } from "../../components/icons";
 
 export default function DashboardTabsBar({
@@ -15,7 +14,7 @@ export default function DashboardTabsBar({
   const shouldShowAddButton = !isStudentRole && showAddButton;
 
   return (
-    <div className="flex items-center justify-between pt-2 pb-3.5">
+    <div className="flex w-full items-center justify-between">
       {showTabs ? (
         <nav className="relative flex gap-8">
           {tabs.map((tab, i) => (
@@ -26,6 +25,7 @@ export default function DashboardTabsBar({
                 ? "text-[#7a1f2b]"
                 : "text-slate-500 hover:text-slate-700"
                 }`}
+
             >
               <FileTextIcon size={14} />
               {tab}
@@ -37,16 +37,18 @@ export default function DashboardTabsBar({
         </nav>
       ) : (
         <h1 className="font-bold !text-slate-900 text-[16px] py-1.5 leading-none">{title}</h1>
+
       )}
+
       {shouldShowAddButton && (
         <button
           onClick={onAddClick}
-          className="flex items-center gap-1.5 rounded-lg bg-[#7a1f2b] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#671a24]"
+          className="flex items-center gap-1.5 rounded-lg bg-[#7a1f2b] px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-[#671a24]"
           type="button"
         >
-          <PlusIcon size={15} /> Add
+          <PlusIcon size={14} /> New Submission
         </button>
       )}
     </div>
-  );
+    );
 }

@@ -153,11 +153,16 @@ export default function ReviewerDashboard({ user = { name: "Prof. Ramon Dela Cru
                                         <p className="mt-1 text-xs text-slate-500">
                                             {sub.student} · {sub.studentNo} · {sub.program}
                                         </p>
+                                        <div>
                                         <div className="mt-2 flex items-center gap-2 text-xs text-slate-400">
                                             <span>ID: {sub.id}</span>
                                             <span>·</span>
-                                            <span className="rounded border border-purple-200 bg-purple-50 px-2.5 py-0.5 text-xs font-bold text-purple-700">Mode 3</span>
+                                            {/* ✅ Soft maroon badge with regular (non-bold) text */}
+                                            <span className="rounded border border-[#e6b8bd] bg-[#fff4f4] px-2.5 py-0.5 text-xs font-medium text-[#7a1f2b]">
+                                                Mode 3
+                                            </span>
                                         </div>
+                                    </div>
                                     </div>
 
                                     <div className="flex flex-col items-end gap-3">
