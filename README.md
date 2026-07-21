@@ -7,10 +7,10 @@ A role-based certification workflow management system for academic institutions.
 ```
 FREC-Monitoring-System/
 ├── FREC-Monitoring-System-Client/   # React 19 + Vite 8 web app (active)
-└── FREC-Monitoring-System-Server/   # Backend skeleton (not yet implemented)
+└── FREC-Monitoring-System-Server/   # Express 4 + Prisma 7 + PostgreSQL 16
 ```
 
-The client is a single-page application with mock authentication and hardcoded data. No backend or database is connected yet — all state lives in `sessionStorage` and component-level `useState`.
+The client is a single-page application with mock authentication and hardcoded data. The server has a PostgreSQL database (Prisma schema, migration, seed data) and Express route stubs awaiting implementation.
 
 ## Roles
 
@@ -53,6 +53,8 @@ Student → Adviser (Approve, Mode 3) → FREC (Approve) → Dean (Endorsement L
 
 ## Tech Stack
 
+### Frontend
+
 | Layer | Technology |
 |-------|-----------|
 | Framework | React 19 (JSX, no TypeScript) |
@@ -63,7 +65,19 @@ Student → Adviser (Approve, Mode 3) → FREC (Approve) → Dean (Endorsement L
 | Auth | Mock session in `sessionStorage` — no backend |
 | Icons | Inline SVGs — no icon library |
 
+### Backend
+
+| Layer | Technology |
+|-------|-----------|
+| Runtime | Node.js 18+ |
+| Framework | Express 4 |
+| Database | PostgreSQL 16 |
+| ORM | Prisma 7 (driver adapter: `@prisma/adapter-pg`) |
+| Auth | Google OAuth (JWT) — not yet implemented |
+
 ## Quick Start
+
+### Client
 
 ```bash
 cd FREC-Monitoring-System-Client
@@ -72,6 +86,19 @@ npm run dev
 ```
 
 Open `http://localhost:5173` in your browser. Select an account from the picker to sign in.
+
+### Server
+
+```bash
+cd FREC-Monitoring-System-Server
+cp .env.example .env       # then edit .env with your DATABASE_URL
+npm install
+npx prisma migrate dev      # creates database tables
+node prisma/seed.js          # seeds roles, users, and documents
+npm run dev                  # starts dev server on port 5000
+```
+
+See [`FREC-Monitoring-System-Server/README.md`](./FREC-Monitoring-System-Server/README.md) for detailed setup.
 
 ## Mock Accounts
 
@@ -129,7 +156,7 @@ FREC-Monitoring-System-Client/
 
 ## Available Scripts
 
-Run these from `FREC-Monitoring-System-Client/`:
+### Client (`FREC-Monitoring-System-Client/`)
 
 | Script | Description |
 |--------|-------------|
@@ -137,6 +164,16 @@ Run these from `FREC-Monitoring-System-Client/`:
 | `npm run build` | Production build to `dist/` |
 | `npm run start` | Preview production build locally |
 | `npm run lint` | Run ESLint across all source files |
+
+### Server (`FREC-Monitoring-System-Server/`)
+
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start Express dev server (nodemon, auto-restart) |
+| `npm start` | Start Express server (production) |
+| `npx prisma migrate dev` | Apply database migrations |
+| `node prisma/seed.js` | Seed database with sample data |
+| `npx prisma studio` | Open Prisma Studio (GUI database browser) |
 
 ## CI
 

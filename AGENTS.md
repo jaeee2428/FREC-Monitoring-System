@@ -2,12 +2,18 @@
 
 ## Active code
 
-Only **`FREC-Monitoring-System-Client/`** is live. Everything else is placeholder:
-- `FREC-Monitoring-System-Server/` — empty skeleton
+- **`FREC-Monitoring-System-Client/`** — Live React SPA (mock data, no API connection)
+- **`FREC-Monitoring-System-Server/`** — Express skeleton with Prisma + PostgreSQL
+  - Database schema (4 tables), migration applied, seed data populated
+  - Route stubs with TODO comments — awaiting auth + DB wiring
 
 ## Stack
 
+### Frontend
 React 19 + Vite 8 + Tailwind CSS v4 (JSX, not TypeScript). All source files use `.jsx`.
+
+### Backend
+Express 4 + Prisma 7 + PostgreSQL 16. All source files use `.js` (CommonJS).
 
 ## Setup & dev
 
@@ -22,6 +28,14 @@ cd FREC-Monitoring-System-Client && npm install && npm run dev
 | `npm run preview` | Preview production build |
 | `npm run lint` | ESLint (flat config in `eslint.config.js`) |
 
+### Server setup
+
+```
+cd FREC-Monitoring-System-Server && npm install && npm run dev
+```
+
+See `FREC-Monitoring-System-Server/README.md` for PostgreSQL + Prisma setup.
+
 ## Key quirks
 
 - **No router library** — role-based views are conditionally rendered in `App.jsx` using a `view` state string and `mockSession` from `sessionStorage`. Routes: `login`, `home`, `all-documents`, `approvals`, `workflow-guide`.
@@ -30,7 +44,7 @@ cd FREC-Monitoring-System-Client && npm install && npm run dev
 - **Mock data** — all data is hardcoded in page files; mock accounts in `src/data/accounts.js` (6 roles: Student, Adviser, IT Admin, Program Chair, Dean, Reviewer). No API calls, no backend.
 - **Login** — mock Google sign-in via account picker; session stored in `window.sessionStorage`.
 - **CSS** — `App.css` for layout (login page); components use Tailwind utilities.
-- **No tests, no CI** — no test framework or CI workflows configured.
+- **No tests** — no test framework configured.
 
 ## Project structure
 
@@ -53,6 +67,26 @@ FREC-Monitoring-System-Client/
         ├── adviser/          # Dashboard.jsx, Approvals.jsx
         ├── student/          # dashboard.jsx
         └── program-chair/    # program-chair-dashboard.jsx, approvals
+
+FREC-Monitoring-System-Server/
+├── prisma/
+│   ├── schema.prisma         # DB schema (4 models)
+│   ├── migrations/           # Migration history
+│   └── seed.js               # Seed script
+├── prisma.config.ts          # Prisma v7 config
+├── src/
+│   ├── server.js             # Entry point
+│   ├── app.js                # Express app
+│   └── routes/
+│       ├── auth.js           # Auth route stubs
+│       ├── users.js          # User route stubs
+│       └── documents.js      # Document route stubs
+├── ERD/
+│   ├── erd_design.md         # Entity-relationship docs
+│   └── erd.png               # ERD diagram
+├── API-SPEC.md               # Full API specification
+├── .env.example              # Environment template
+└── README.md                 # Backend setup guide
 ```
 
 ## Certification Modes
