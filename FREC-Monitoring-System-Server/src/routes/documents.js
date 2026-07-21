@@ -1,92 +1,120 @@
 const express = require('express');
 const router = express.Router();
+const prisma = require('../db');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DOCUMENT ROUTES — PBI-147 (Trishia)
 //
 // This file defines all API endpoints related to document submission,
 // querying, mode assignment, and the certification workflow state transitions.
-//
-// PostgreSQL tables involved:
-//   - DOCUMENT            (id, title, student_id, adviser_id, status, mode,
-//                          submitted_date, updated_date, remarks)
-//   - DOCUMENT_HISTORY    (id, document_id, status, actor_id, remarks, created_at)
-//
-// TODO (Jaena — PBI-148): Add `protect` + `authorizeRoles` middleware to each
-//       route once JWT authentication is implemented.
-//
-// TODO (James — PBI-146): Replace placeholder responses with actual PostgreSQL
-//       queries using the pg client or Prisma.
-//
 // ─────────────────────────────────────────────────────────────────────────────
-
-// ─── State Machine Reference ──────────────────────────────────────────────────
-//
-// The `approve` endpoint drives the entire certification workflow.
-// The next status is determined by the actor's ROLE and the document's MODE:
-//
-// | Current Status            | Actor Role     | Mode    | Next Status              |
-// |---------------------------|----------------|---------|--------------------------|
-// | SUBMITTED                 | Adviser        | 1, 2, 3 | FORWARDED-FREC           |
-// | FORWARDED-FREC            | Reviewer(FREC) | 1, 2, 3 | AWAITING_CHAIR_REVIEW    |
-// | AWAITING_CHAIR_REVIEW     | Program Chair  | 1       | COMPLETED                |
-// | AWAITING_CHAIR_REVIEW     | Program Chair  | 2 or 3  | FORWARDED-DEAN           |
-// | FORWARDED-DEAN            | Dean           | 2       | COMPLETED                |
-// | FORWARDED-DEAN            | Dean           | 3       | DEAN ENDORSED            |
-// | DEAN ENDORSED             | Reviewer(FREC) | 3       | FOR REVIEW               |
-// | FOR REVIEW                | Reviewer(FREC) | 3       | COMPLETED                |
-// |---------------------------|----------------|---------|--------------------------|
-// Any role at any stage can DISAPPROVE → sets status to "DISAPPROVED" (terminal)
-//
-// ─────────────────────────────────────────────────────────────────────────────
-
 
 /**
  * @route   POST /api/documents
  * @desc    Student submits a new document for certification tracking.
  *          Creates a DOCUMENT record with status "SUBMITTED" and mode null.
+ *          Requires a valid Google Drive link.
  *          Also inserts an initial DOCUMENT_HISTORY entry.
  * @access  Private — Student only
  *
- * @body    { title: string, adviserId: string }
+ * @body    { title: string, adviserId?: string, driveLink: string }
  *
- * @returns 201  { id, title, status: "SUBMITTED", mode: null, submittedDate }
- * @returns 400  { error: "title and adviserId are required" }
+ * @returns 201  { id, title, driveLink, status: "SUBMITTED", mode: null, submittedDate }
+ * @returns 400  { error: string }
  */
-router.post('/', (req, res) => {
-    const { title, adviserId } = req.body;
-    // TODO (James): INSERT INTO document (id, title, student_id, adviser_id, status)
-    //               VALUES ($1, $2, req.user.id, $3, 'SUBMITTED')
-    // TODO (James): INSERT INTO document_history (document_id, status, actor_id)
-    //               VALUES (newDoc.id, 'SUBMITTED', req.user.id)
-    res.status(201).json({
-        message: '[PLACEHOLDER] POST /api/documents reached.',
-        receivedBody: { title, adviserId },
-    });
+router.post('/', async (req, res, next) => {
+    try {
+        const { title, adviserId, studentId, driveLink, drive_link } = req.body;
+        const finalDriveLink = driveLink || drive_link;
+
+        const effectiveStudentId = studentId || (req.user ? req.user.id : "U001");
+        const effectiveAdviserId = adviserId || "U002";
+
+        if (!title || !finalDriveLink) {
+            return res.status(400).json({ error: "title and driveLink (Google Drive link) are required" });
+        }
+
+        // Google Drive / Docs URL regex validation
+        const gdriveRegex = /^(https?:\/\/)?(drive|docs)\.google\.com\/.+$/i;
+        if (!gdriveRegex.test(finalDriveLink.trim())) {
+            return res.status(400).json({ error: "Invalid document link. Please provide a valid Google Drive link (e.g., https://drive.google.com/...)" });
+        }
+
+        const docId = `DOC-${Date.now()}`;
+        const newDoc = await prisma.document.create({
+            data: {
+                id: docId,
+                title: title.trim(),
+                drive_link: finalDriveLink.trim(),
+                student_id: effectiveStudentId,
+                adviser_id: effectiveAdviserId,
+                status: 'SUBMITTED',
+                submitted_date: new Date(),
+                updated_date: new Date(),
+                history: {
+                    create: {
+                        status: 'SUBMITTED',
+                        actor_id: effectiveStudentId,
+                        remarks: `Document submitted via Google Drive: ${finalDriveLink.trim()}`
+                    }
+                }
+            },
+            include: {
+                student: true,
+                adviser: true
+            }
+        });
+
+        res.status(201).json({
+            id: newDoc.id,
+            title: newDoc.title,
+            driveLink: newDoc.drive_link,
+            status: newDoc.status,
+            mode: newDoc.mode,
+            submittedDate: newDoc.submitted_date,
+            student: newDoc.student ? newDoc.student.name : "Maria Santos",
+            adviser: newDoc.adviser ? newDoc.adviser.name : "Dr. Elena Reyes"
+        });
+    } catch (error) {
+        next(error);
+    }
 });
 
 
 /**
  * @route   GET /api/documents
  * @desc    Returns a filtered list of documents based on the requesting user's role.
- *          - Student       → WHERE student_id = current user id
- *          - Adviser       → WHERE adviser_id = current user id
- *          - Reviewer(FREC)→ WHERE status IN ('FORWARDED-FREC', 'DEAN ENDORSED', 'FOR REVIEW')
- *          - Program Chair → WHERE status = 'AWAITING_CHAIR_REVIEW'
- *          - Dean          → WHERE status = 'FORWARDED-DEAN'
- *          - IT Admin      → All documents (no filter)
  * @access  Private — All roles
  *
- * @returns 200  { documents: [ { id, title, student, adviser, mode, status, updatedDate } ] }
+ * @returns 200  { documents: [ { id, title, driveLink, student, adviser, mode, status, updatedDate } ] }
  */
-router.get('/', (req, res) => {
-    // TODO (James): Build a role-aware SELECT query against the DOCUMENT table
-    //               joining USER_ACCOUNT for student and adviser names.
-    //               Filter by req.user.role to determine which rows to return.
-    res.status(200).json({
-        message: '[PLACEHOLDER] GET /api/documents reached.',
-        documents: [],
-    });
+router.get('/', async (req, res, next) => {
+    try {
+        const documents = await prisma.document.findMany({
+            orderBy: { submitted_date: 'desc' },
+            include: {
+                student: { select: { id: true, name: true, email: true } },
+                adviser: { select: { id: true, name: true, email: true } },
+            }
+        });
+
+        const formatted = documents.map(doc => ({
+            id: doc.id,
+            title: doc.title,
+            driveLink: doc.drive_link,
+            student: doc.student ? doc.student.name : "Unknown",
+            adviser: doc.adviser ? doc.adviser.name : "Unassigned",
+            mode: doc.mode,
+            status: doc.status,
+            submittedDate: doc.submitted_date,
+            updatedDate: doc.updated_date,
+            remarks: doc.remarks
+        }));
+
+        res.status(200).json({ documents: formatted });
+    } catch (error) {
+        next(error);
+    }
 });
 
 

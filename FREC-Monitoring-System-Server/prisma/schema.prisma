@@ -34,6 +34,7 @@ model UserAccount {
 model Document {
   id             String         @id @db.VarChar(50)
   title          String         @db.VarChar(255)
+  drive_link     String?        @db.Text
   student_id     String         @db.VarChar(50)
   student        UserAccount    @relation("StudentDocuments", fields: [student_id], references: [id])
   adviser_id     String?        @db.VarChar(50)

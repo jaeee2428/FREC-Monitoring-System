@@ -163,13 +163,15 @@ Updates the assigned role of a user account.
 
 Student submits a new document for certification tracking. Creates a `DOCUMENT` record
 with `status = "SUBMITTED"` and `mode = null`, and logs the first `DOCUMENT_HISTORY` entry.
+Requires a valid Google Drive link (`driveLink`).
 
 - **Access:** Private — Student only
 - **Request Body:**
 ```json
 {
   "title": "Thesis Certification Request",
-  "adviserId": "adviser_user_id"
+  "adviserId": "adviser_user_id",
+  "driveLink": "https://drive.google.com/file/d/12345/view"
 }
 ```
 - **Response `201`:**
@@ -177,6 +179,7 @@ with `status = "SUBMITTED"` and `mode = null`, and logs the first `DOCUMENT_HIST
 {
   "id": "DOC-2026-9021",
   "title": "Thesis Certification Request",
+  "driveLink": "https://drive.google.com/file/d/12345/view",
   "status": "SUBMITTED",
   "mode": null,
   "submittedDate": "2026-07-20T11:00:00Z"
@@ -184,7 +187,7 @@ with `status = "SUBMITTED"` and `mode = null`, and logs the first `DOCUMENT_HIST
 ```
 - **Response `400`:**
 ```json
-{ "error": "title and adviserId are required." }
+{ "error": "Invalid document link. Please provide a valid Google Drive link (e.g., https://drive.google.com/...)" }
 ```
 
 ---
