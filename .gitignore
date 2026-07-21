@@ -1,4 +1,60 @@
-node_modules/
-dist/
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies 
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Build outputs
 *.local
 .github/PULL_REQUEST_TEMPLATE.md
+dist/
+build/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.log
+*.tmp
+
+# Frontend folder (deprecated)
+frontend/
+
+# Expo
+.expo/
+
+# Prisma (generated files only - commit schema, migrations, seed, config!)
+FREC-Monitoring-System-Server/src/generated/prisma/
+FREC-Monitoring-System-Server/prisma/src/
