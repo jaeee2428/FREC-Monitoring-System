@@ -9,6 +9,8 @@ import {
   RotateIcon,
 } from "../../components/icons";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001/api";
+
 const INITIAL_REQUESTS = [
   {
     id: "REQ-2024-001",
@@ -72,7 +74,7 @@ export default function StudentDashboard({
   useEffect(() => {
     async function fetchBackendDocuments() {
       try {
-        const res = await fetch("/api/documents");
+        const res = await fetch(`${API_BASE_URL}/documents`);
         if (res.ok) {
           const data = await res.json();
           if (data.documents && data.documents.length > 0) {
@@ -133,12 +135,13 @@ export default function StudentDashboard({
     const linkToSubmit = driveLink.trim();
 
     try {
-      const res = await fetch("/api/documents", {
+      const res = await fetch(`${API_BASE_URL}/documents`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: titleToSubmit,
           driveLink: linkToSubmit,
+          studentId: "U001",
           adviserId: "U002"
         })
       });
@@ -163,7 +166,7 @@ export default function StudentDashboard({
         const errorData = await res.json().catch(() => ({}));
         showToast(errorData.error || "Failed to submit document to server.");
       }
-    } catch (err) {
+    } catch {
       // Fallback if backend server is offline
       const newRequest = {
         id: `REQ-2026-${Math.floor(1000 + Math.random() * 9000)}`,

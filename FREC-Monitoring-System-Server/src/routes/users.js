@@ -27,6 +27,10 @@ const ROLE_MAP = {
     '4': 4, '04': 4,
 };
 
+function normalizeCsvHeader(header) {
+    return String(header || '').trim().toLowerCase().replace(/\s+/g, '_');
+}
+
 function parseRoleCode(raw) {
     if (!raw) return null;
     const normalized = String(raw).trim().toLowerCase();

@@ -44,8 +44,6 @@ const ROLE_CODE_GUIDE = [
     { code: "2", label: "Adviser", color: "bg-blue-50 text-blue-700 border-blue-200" },
     { code: "3", label: "Program Chair", color: "bg-blue-50 text-blue-700 border-blue-200" },
     { code: "4", label: "Dean", color: "bg-blue-50 text-blue-700 border-blue-200" },
-    { code: "5", label: "Reviewer", color: "bg-blue-50 text-blue-700 border-blue-200" },
-    { code: "6", label: "IT Admin", color: "bg-blue-50 text-blue-700 border-blue-200" },
 ];
 
 const ROLE_NAMES = {
@@ -238,26 +236,26 @@ export default function ITAdminDashboard({ user = { name: "Admin Dela Rosa", ini
         setIsDragging(false);
     }, []);
 
+    const processFile = useCallback((file) => {
+        if (!file.name.toLowerCase().endsWith('.csv')) {
+            showToast("Only .csv files are accepted.", "error");
+            return;
+        }
+        setCsvFile(file);
+    }, []);
+
     const handleDrop = useCallback((e) => {
         e.preventDefault();
         setIsDragging(false);
         const file = e.dataTransfer.files[0];
         if (file) processFile(file);
-    }, []);
+    }, [processFile]);
 
     const handleFileInputChange = (e) => {
         const file = e.target.files[0];
         if (file) processFile(file);
         e.target.value = "";
     };
-
-    function processFile(file) {
-        if (!file.name.toLowerCase().endsWith('.csv')) {
-            showToast("Only .csv files are accepted.", "error");
-            return;
-        }
-        setCsvFile(file);
-    }
 
     // ─── CSV Preview: sends file to /api/users/preview-csv ────────────────────
     const handlePreview = async () => {
@@ -276,7 +274,7 @@ export default function ITAdminDashboard({ user = { name: "Admin Dela Rosa", ini
                 return;
             }
             setCsvPreview(data.preview);
-        } catch (err) {
+        } catch {
             showToast("Could not reach server for preview.", "error");
         } finally {
             setPreviewUploading(false);
@@ -300,7 +298,7 @@ export default function ITAdminDashboard({ user = { name: "Admin Dela Rosa", ini
             showToast(`✓ ${data.importedCount} user(s) imported & whitelisted.`);
             setCsvPreview(null);
             setCsvFile(null);
-        } catch (err) {
+        } catch {
             showToast("Server unreachable. Import failed.", "error");
         } finally {
             setImporting(false);
