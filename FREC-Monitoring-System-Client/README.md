@@ -37,8 +37,11 @@ ESLint 10 with flat config (`eslint.config.js`). Covers React hooks rules and JS
 - **No router library** — views are conditionally rendered in `App.jsx` based on a `view` state string and session role
 - **Tailwind v4** — uses `@import "tailwindcss"` in CSS, no `tailwind.config.js`
 - **Inline SVGs** — all icons live in `src/components/icons.jsx` (no external icon library)
-- **Mock data** — all data is hardcoded in page files; no API layer yet
+- **Mock data** — all data is hardcoded in page files; no API layer connected yet
 - **Session** — stored in `window.sessionStorage` under `mockSession` key
+
+> The Express backend with PostgreSQL is being developed in [`FREC-Monitoring-System-Server/`](../FREC-Monitoring-System-Server/).
+> API endpoints are defined in the [API Spec](../FREC-Monitoring-System-Server/API-SPEC.md).
 
 ## Project Structure
 

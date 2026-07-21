@@ -4,6 +4,10 @@ This document defines the HTTP endpoints for the CertTrack backend API.
 It is intended for frontend developers connecting the React client to the Express server,
 and for backend developers (James, Jaena, Venice) implementing the database and auth logic.
 
+> **Implementation status:** Route files contain placeholder stubs with TODOs.
+> The database (Prisma + PostgreSQL) is set up and seeded. See `README.md` for setup.
+> Actual DB queries and auth middleware have not been wired in yet.
+
 > For a high-level overview of roles, certification modes, and the workflow, see the root [`README.md`](../README.md).
 
 ---
@@ -13,6 +17,8 @@ and for backend developers (James, Jaena, Venice) implementing the database and 
 ```
 http://localhost:5000/api
 ```
+
+> **Note:** macOS may use port 5000 for AirPlay Receiver. If the server fails to start with `EADDRINUSE`, set `PORT=5001` in your `.env` file and use `http://localhost:5001/api`.
 
 ---
 
