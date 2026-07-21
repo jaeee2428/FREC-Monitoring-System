@@ -38,8 +38,6 @@ export default function AdviserApprovalsView({ submissions, onApprove, onDisappr
 
     return (
         <div>
-            <h1 className="!m-0 !mb-5 !text-lg !font-bold !text-slate-800">Approvals</h1>
-
             {/* Summary stat cards */}
             <div className="mb-6 flex gap-4">
                 <StatCard label="PENDING REVIEW" value={pendingCount} valueColor="text-[#7a1f2b]" />
