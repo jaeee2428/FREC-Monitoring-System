@@ -6,4 +6,7 @@ ORDER BY id DESC
 LIMIT 20;node_modules/
 dist/
 *.local
+.env
+.env.local
+.env.*.local
 .github/PULL_REQUEST_TEMPLATE.md
