@@ -157,6 +157,61 @@ Updates the assigned role of a user account.
 
 ---
 
+### `POST /api/users/preview-csv`
+
+Parses an IT Admin CSV file and returns a preview without saving rows.
+
+- **Access:** Private — IT Admin
+- **Request:** `multipart/form-data`
+- **File field:** `file`
+- **Required CSV columns:** `name,email,role code`
+- **Role codes:** `1 = Student`, `2 = Adviser`, `3 = Program Chair`, `4 = Dean`
+- **Note:** Column headers are case-insensitive.
+
+- **Response `200`:**
+```json
+{
+  "preview": [
+    {
+      "name": "Maria Santos",
+      "email": "m.santos@university.edu.ph",
+      "role_id": 1,
+      "roleName": "Student",
+      "valid": true,
+      "error": null
+    }
+  ],
+  "totalRows": 1,
+  "validCount": 1
+}
+```
+
+---
+
+### `POST /api/users/upload-csv`
+
+Confirms and imports the same IT Admin CSV file into `USER_ACCOUNT`.
+Existing users are updated by email; new users are created and whitelisted.
+
+- **Access:** Private — IT Admin
+- **Request:** `multipart/form-data`
+- **File field:** `file`
+- **Required CSV columns:** `name,email,role code`
+- **Role codes:** `1 = Student`, `2 = Adviser`, `3 = Program Chair`, `4 = Dean`
+- **Note:** Column headers are case-insensitive.
+
+- **Response `200`:**
+```json
+{
+  "message": "CSV processed successfully. 1 user(s) imported and whitelisted.",
+  "importedCount": 1,
+  "skippedCount": 0,
+  "errors": []
+}
+```
+
+---
+
 ## Document Routes
 
 ### `POST /api/documents`

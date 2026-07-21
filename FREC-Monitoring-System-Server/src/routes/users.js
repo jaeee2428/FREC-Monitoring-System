@@ -16,29 +16,35 @@ const prisma = require('../db');
 // ─── Multer (in-memory file storage for CSV parsing) ─────────────────────────
 const upload = multer({ storage: multer.memoryStorage() });
 
-// ─── Role Code Map ────────────────────────────────────────────────────────────
-// Accepts both numeric codes (01, 02, 1, 2) and role name strings (student, adviser, ...)
-// Completely case-insensitive.
+// ─── CSV Role Code Map ────────────────────────────────────────────────────────
+// CSV import intentionally accepts only role codes 1-4 for this PBI:
+// 1 = Student, 2 = Adviser, 3 = Program Chair, 4 = Dean.
+// Header names are treated case-insensitively.
 const ROLE_MAP = {
-    // Numeric codes
     '1': 1, '01': 1,
     '2': 2, '02': 2,
     '3': 3, '03': 3,
     '4': 4, '04': 4,
-    // Role name strings
-    'student': 1,
-    'adviser': 2,
-    'advisor': 2,
-    'program chair': 3,
-    'programchair': 3,
-    'chair': 3,
-    'dean': 4,
 };
 
 function parseRoleCode(raw) {
     if (!raw) return null;
     const normalized = String(raw).trim().toLowerCase();
     return ROLE_MAP[normalized] ?? null;
+}
+
+function normalizeHeader(header) {
+    return header.trim().toLowerCase().replace(/\s+/g, '_');
+}
+
+function getCsvValue(row, field) {
+    return row[field] || row[field.replace('_', ' ')] || '';
+}
+
+function validateCsvHeaders(row) {
+    const headers = Object.keys(row).map(normalizeHeader);
+    const required = ['name', 'email', 'role_code'];
+    return required.filter((header) => !headers.includes(header));
 }
 
 /**
@@ -152,10 +158,9 @@ router.put('/:id/role', async (req, res, next) => {
 /**
  * @route   POST /api/users/upload-csv
  * @desc    Accepts a CSV file (multipart/form-data, field name: "file")
- *          with columns: name, email, role
+ *          with columns: name, email, role code
  *          Bulk creates / updates user accounts in PostgreSQL and whitelists them.
- *          Role column accepts: 01/1/student, 02/2/adviser, 03/3/program chair, 04/4/dean
- *          Matching is completely case-insensitive.
+ *          Role code accepts: 1, 2, 3, 4. Header matching is case-insensitive.
  * @access  Private — IT Admin only
  *
  * @body    multipart/form-data  { file: <csv file> }
@@ -180,17 +185,24 @@ router.post('/upload-csv', upload.single('file'), async (req, res, next) => {
         await new Promise((resolve, reject) => {
             const stream = Readable.from(req.file.buffer.toString('utf-8'));
             stream
-                .pipe(csv({ mapHeaders: ({ header }) => header.trim().toLowerCase() }))
+                .pipe(csv({ mapHeaders: ({ header }) => normalizeHeader(header) }))
                 .on('data', (row) => rows.push(row))
                 .on('error', reject)
                 .on('end', resolve);
         });
 
+        const missingHeaders = rows[0] ? validateCsvHeaders(rows[0]) : ['name', 'email', 'role_code'];
+        if (missingHeaders.length) {
+            return res.status(400).json({
+                error: `Missing required column(s): ${missingHeaders.join(', ')}.`,
+            });
+        }
+
         const valid = [];
         rows.forEach((row, idx) => {
-            const name = (row['name'] || '').trim();
-            const email = (row['email'] || '').trim().toLowerCase();
-            const roleRaw = row['role'] || '';
+            const name = getCsvValue(row, 'name').trim();
+            const email = getCsvValue(row, 'email').trim().toLowerCase();
+            const roleRaw = getCsvValue(row, 'role_code');
             const roleId = parseRoleCode(roleRaw);
 
             const rowLabel = `Row ${idx + 2}`; // +2: 1 for header, 1-indexed
@@ -203,10 +215,10 @@ router.post('/upload-csv', upload.single('file'), async (req, res, next) => {
                 return;
             }
             if (!roleId) {
-                errors.push({ row: rowLabel, reason: `Invalid role "${roleRaw}". Use 01-04 or student/adviser/program chair/dean` });
+                errors.push({ row: rowLabel, reason: `Invalid role code "${roleRaw}". Use 1, 2, 3, or 4.` });
                 return;
             }
-            valid.push({ name, email, role_id: roleId });
+            valid.push({ name, email, role_id: roleId, program: null });
         });
 
         let importedCount = 0;
@@ -216,12 +228,13 @@ router.post('/upload-csv', upload.single('file'), async (req, res, next) => {
 
             await prisma.userAccount.upsert({
                 where: { email: user.email },
-                update: { name: user.name, role_id: user.role_id, whitelisted: true },
+                update: { name: user.name, role_id: user.role_id, program: user.program, whitelisted: true },
                 create: {
                     id: userId,
                     name: user.name,
                     email: user.email,
                     role_id: user.role_id,
+                    program: user.program,
                     whitelisted: true,
                 },
             });
@@ -266,22 +279,29 @@ router.post('/preview-csv', upload.single('file'), async (req, res, next) => {
         await new Promise((resolve, reject) => {
             const stream = Readable.from(req.file.buffer.toString('utf-8'));
             stream
-                .pipe(csv({ mapHeaders: ({ header }) => header.trim().toLowerCase() }))
+                .pipe(csv({ mapHeaders: ({ header }) => normalizeHeader(header) }))
                 .on('data', (row) => rows.push(row))
                 .on('error', reject)
                 .on('end', resolve);
         });
 
+        const missingHeaders = rows[0] ? validateCsvHeaders(rows[0]) : ['name', 'email', 'role_code'];
+        if (missingHeaders.length) {
+            return res.status(400).json({
+                error: `Missing required column(s): ${missingHeaders.join(', ')}.`,
+            });
+        }
+
         const preview = rows.map((row, idx) => {
-            const name = (row['name'] || '').trim();
-            const email = (row['email'] || '').trim().toLowerCase();
-            const roleRaw = row['role'] || '';
+            const name = getCsvValue(row, 'name').trim();
+            const email = getCsvValue(row, 'email').trim().toLowerCase();
+            const roleRaw = getCsvValue(row, 'role_code');
             const roleId = parseRoleCode(roleRaw);
 
             const errors = [];
             if (!name) errors.push('Missing name');
             if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push('Missing or invalid email');
-            if (!roleId) errors.push(`Invalid role "${roleRaw}"`);
+            if (!roleId) errors.push(`Invalid role code "${roleRaw}"`);
 
             return {
                 name: name || '—',

@@ -1,4 +1,9 @@
-node_modules/
+\dt
+SELECT COUNT(*) AS user_count FROM "USER_ACCOUNT";
+SELECT id, name, email, role_id, whitelisted
+FROM "USER_ACCOUNT"
+ORDER BY id DESC
+LIMIT 20;node_modules/
 dist/
 *.local
 .github/PULL_REQUEST_TEMPLATE.md

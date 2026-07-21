@@ -3,7 +3,9 @@ import DashboardLayout from "../../layouts/DashboardLayout.jsx";
 import { StatCard } from "../../components/StatCard.jsx";
 import { FileTextIcon, HomeIcon, RotateIcon, CheckCircleIcon, XCircleIcon, InfoIcon } from "../../components/icons.jsx";
 import WorkflowGuide from "../../components/WorkflowGuide.jsx";
-import { accounts, ROLE_NAMES } from "../../data/accounts.js";
+import { accounts } from "../../data/accounts.js";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001/api";
 
 // ─── Inline Icons ─────────────────────────────────────────────────────────────
 const SearchIcon = ({ size = 16, ...props }) => (
@@ -38,11 +40,22 @@ const XIcon = ({ size = 14, ...props }) => (
 
 // ─── Role Code Reference Table ────────────────────────────────────────────────
 const ROLE_CODE_GUIDE = [
-    { code: "01", alias: "1  /  student",        label: "Student",       color: "bg-blue-50 text-blue-700 border-blue-200" },
-    { code: "02", alias: "2  /  adviser",         label: "Adviser",       color: "bg-purple-50 text-purple-700 border-purple-200" },
-    { code: "03", alias: "3  /  program chair",   label: "Program Chair", color: "bg-amber-50 text-amber-700 border-amber-200" },
-    { code: "04", alias: "4  /  dean",            label: "Dean",          color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+    { code: "1", label: "Student", color: "bg-blue-50 text-blue-700 border-blue-200" },
+    { code: "2", label: "Adviser", color: "bg-blue-50 text-blue-700 border-blue-200" },
+    { code: "3", label: "Program Chair", color: "bg-blue-50 text-blue-700 border-blue-200" },
+    { code: "4", label: "Dean", color: "bg-blue-50 text-blue-700 border-blue-200" },
+    { code: "5", label: "Reviewer", color: "bg-blue-50 text-blue-700 border-blue-200" },
+    { code: "6", label: "IT Admin", color: "bg-blue-50 text-blue-700 border-blue-200" },
 ];
+
+const ROLE_NAMES = {
+    1: "Student",
+    2: "Adviser",
+    3: "Program Chair",
+    4: "Dean",
+    5: "Reviewer",
+    6: "IT Admin",
+};
 
 const ROLE_BADGE_COLORS = {
     "Student":       "bg-blue-50 text-blue-700 border-blue-200",
@@ -50,6 +63,25 @@ const ROLE_BADGE_COLORS = {
     "Program Chair": "bg-amber-50 text-amber-700 border-amber-200",
     "Dean":          "bg-emerald-50 text-emerald-700 border-emerald-200",
 };
+
+function initialsFromName(name) {
+    return name
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase())
+        .join("");
+}
+
+function normalizeUserFromApi(user) {
+    return {
+        initials: initialsFromName(user.name),
+        name: user.name,
+        email: user.email,
+        role: user.role_id,
+        whitelisted: user.whitelisted,
+    };
+}
 
 // ─── CSV Preview Modal ────────────────────────────────────────────────────────
 function CsvPreviewModal({ preview, onConfirm, onCancel, uploading }) {
@@ -163,6 +195,15 @@ export default function ITAdminDashboard({ user = { name: "Admin Dela Rosa", ini
         window.setTimeout(() => setToast(null), 3000);
     };
 
+    const refreshUsersFromApi = async () => {
+        const res = await fetch(`${API_BASE_URL}/users`);
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.error || "Unable to refresh imported users.");
+        }
+        setUsersList((data.users || []).map(normalizeUserFromApi));
+    };
+
     // ─── User Management Handlers ──────────────────────────────────────────────
     const handleSaveRole = (email) => {
         const newRole = editRole[email];
@@ -211,7 +252,7 @@ export default function ITAdminDashboard({ user = { name: "Admin Dela Rosa", ini
     };
 
     function processFile(file) {
-        if (!file.name.endsWith('.csv')) {
+        if (!file.name.toLowerCase().endsWith('.csv')) {
             showToast("Only .csv files are accepted.", "error");
             return;
         }
@@ -228,7 +269,7 @@ export default function ITAdminDashboard({ user = { name: "Admin Dela Rosa", ini
         try {
             const formData = new FormData();
             formData.append("file", csvFile);
-            const res = await fetch("/api/users/preview-csv", { method: "POST", body: formData });
+            const res = await fetch(`${API_BASE_URL}/users/preview-csv`, { method: "POST", body: formData });
             const data = await res.json();
             if (!res.ok) {
                 showToast(data.error || "Preview failed.", "error");
@@ -249,12 +290,13 @@ export default function ITAdminDashboard({ user = { name: "Admin Dela Rosa", ini
         try {
             const formData = new FormData();
             formData.append("file", csvFile);
-            const res = await fetch("/api/users/upload-csv", { method: "POST", body: formData });
+            const res = await fetch(`${API_BASE_URL}/users/upload-csv`, { method: "POST", body: formData });
             const data = await res.json();
             if (!res.ok) {
                 showToast(data.error || "Import failed.", "error");
                 return;
             }
+            await refreshUsersFromApi();
             showToast(`✓ ${data.importedCount} user(s) imported & whitelisted.`);
             setCsvPreview(null);
             setCsvFile(null);
@@ -309,15 +351,17 @@ export default function ITAdminDashboard({ user = { name: "Admin Dela Rosa", ini
             {view === "Accounts" || view === "Dashboard" ? (
                 <div className="space-y-6">
                     {/* Hero Banner */}
-                    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#7a1f2b] to-[#4a1319] px-8 py-6 text-white shadow-sm">
-                        <h1 className="!m-0 !text-xl !font-bold !text-white">Welcome, {user.name}!</h1>
-                        <p className="mt-1 max-w-xl text-sm text-white/85">
-                            Manage whitelisted accounts, assign roles, and audit system access.
-                        </p>
-                        <div className="absolute right-8 top-1/2 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white/40 text-lg font-bold">
-                            {user.initials}
+                    {view === "Dashboard" && (
+                        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#7a1f2b] to-[#4a1319] px-8 py-6 text-white shadow-sm">
+                            <h1 className="!m-0 !text-xl !font-bold !text-white">Welcome, {user.name}!</h1>
+                            <p className="mt-1 max-w-xl text-sm text-white/85">
+                                Manage whitelisted accounts, assign roles, and audit system access.
+                            </p>
+                            <div className="absolute right-8 top-1/2 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white/40 text-lg font-bold">
+                                {user.initials}
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* Stats */}
                     <div className="flex gap-4">
@@ -337,18 +381,16 @@ export default function ITAdminDashboard({ user = { name: "Admin Dela Rosa", ini
                                 <InfoIcon size={14} className="text-blue-500 shrink-0" />
                                 <p className="text-xs font-semibold text-blue-800">CSV Format Guide</p>
                             </div>
-                            <p className="text-xs text-blue-700 mb-2">
-                                Required columns: <span className="font-mono bg-blue-100 px-1 rounded">name</span>, <span className="font-mono bg-blue-100 px-1 rounded">email</span>, <span className="font-mono bg-blue-100 px-1 rounded">role</span>. Column headers are case-insensitive.
+                            <p className="text-xs text-blue-700 mb-3">
+                                Required columns: <span className="font-mono bg-blue-200 px-1 py-0 rounded text-blue-900 font-semibold text-xs">name</span>, <span className="font-mono bg-blue-200 px-1 py-0 rounded text-blue-900 font-semibold text-xs">email</span>, <span className="font-mono bg-blue-200 px-1 py-0 rounded text-blue-900 font-semibold text-xs">role code</span>
                             </p>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                {ROLE_CODE_GUIDE.map(r => (
-                                    <div key={r.code} className={`rounded-md border px-2.5 py-1.5 text-xs ${r.color}`}>
-                                        <p className="font-mono font-bold">{r.code}</p>
-                                        <p className="opacity-70 text-[10px]">or: {r.alias}</p>
-                                        <p className="font-semibold mt-0.5">{r.label}</p>
-                                    </div>
+                            <p className="text-xs text-blue-700">
+                                <span className="text-blue-700">Role codes:</span> {ROLE_CODE_GUIDE.map((r, i) => (
+                                    <span key={r.code}>
+                                        <span className="font-mono bg-blue-200 px-1 py-0 rounded text-blue-900 font-semibold text-xs">{r.code}</span> = {r.label}{i < ROLE_CODE_GUIDE.length - 1 ? ', ' : ''}
+                                    </span>
                                 ))}
-                            </div>
+                            </p>
                         </div>
 
                         {/* Drag & Drop Zone */}
