@@ -4,13 +4,12 @@ import StatusBadge from "../../components/StatusBadge.jsx";
 import { XCircleIcon, ArrowRightCircleIcon, CheckCircleIcon } from "../../components/icons.jsx";
 import ModeBadge from "../../components/ModeBadge.jsx";
 
-// Reusable Interactive Mode Switch Buttons
+// Reusable Interactive Mode Switch Buttons (Unified Maroon Theme)
 function ModeButton({ mode, active, onClick }) {
     const getActiveStyle = () => {
         if (!active) return "border-slate-300 bg-white text-slate-600 hover:border-slate-400";
-        if (mode === 1) return "border-emerald-600 bg-emerald-600 text-white";
-        if (mode === 2) return "border-sky-500 bg-sky-500 text-white";
-        return "border-purple-600 bg-purple-600 text-white";
+        // All active modes use brand maroon for visual consistency
+        return "border-[#7a1f2b] bg-[#7a1f2b] text-white shadow-sm";
     };
 
     return (
@@ -22,6 +21,8 @@ function ModeButton({ mode, active, onClick }) {
         </button>
     );
 }
+
+
 
 export default function ProgramChairApprovals({ submissions, onApprove, onDisapprove, onSetMode }) {
     const [filter, setFilter] = useState("All");

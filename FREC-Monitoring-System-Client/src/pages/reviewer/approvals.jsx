@@ -94,7 +94,7 @@ export default function ReviewerApprovals({ submissions, onApprove, onDisapprove
                                             {isPending ? (
                                                 <button
                                                     onClick={() => onApprove(sub.id)}
-                                                    className="flex items-center gap-1.5 rounded-md bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 text-xs font-semibold transition-colors shadow-sm"
+                                                    className="flex items-center gap-1.5 rounded-md bg-[#7a1f2b] hover:bg-[#5a121d] text-white px-3 py-1.5 text-xs font-semibold transition-colors shadow-sm"
                                                 >
                                                     <ArrowRightCircleIcon size={14} /> Accept for Review
                                                 </button>

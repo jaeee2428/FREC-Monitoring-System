@@ -38,8 +38,6 @@ export default function AdviserApprovalsView({ submissions, onApprove, onDisappr
 
     return (
         <div>
-            <h1 className="!m-0 !mb-5 !text-lg !font-bold !text-slate-800">Approvals</h1>
-
             {/* Summary stat cards */}
             <div className="mb-6 flex gap-4">
                 <StatCard label="PENDING REVIEW" value={pendingCount} valueColor="text-[#7a1f2b]" />
@@ -139,10 +137,11 @@ export default function AdviserApprovalsView({ submissions, onApprove, onDisappr
                                                 onClick={() => onApprove(sub.id)}
                                                 disabled={!sub.mode}
                                                 title={!sub.mode ? "Select a Mode before approving" : undefined}
-                                                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${sub.mode
-                                                    ? "bg-[#e6b8bd] text-[#7a1f2b] hover:bg-[#dba3aa] cursor-pointer"
-                                                    : "bg-slate-100 text-slate-400 cursor-not-allowed pointer-events-none"
-                                                    }`}
+                                                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors shadow-sm ${
+                                                    sub.mode
+                                                        ? "bg-[#7a1f2b] text-white hover:bg-[#5a121d] cursor-pointer"
+                                                        : "bg-slate-100 text-slate-400 cursor-not-allowed pointer-events-none"
+                                                }`}
                                             >
                                                 <ArrowRightCircleIcon size={13} /> Approve → FREC
                                             </button>
