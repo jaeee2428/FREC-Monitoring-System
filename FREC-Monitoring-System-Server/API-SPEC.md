@@ -126,6 +126,31 @@ Toggles the whitelisted status of a user account, granting or revoking portal ac
 
 ---
 
+### `PUT /api/users/:id/role`
+
+Updates the assigned role of a user account.
+
+- **Access:** Private — IT Admin
+- **URL Params:** `id` — the `USER_ACCOUNT.id` of the target user
+- **Request Body:**
+```json
+{ "role_id": 2 }
+```
+- **Response `200`:**
+```json
+{ "message": "User role updated successfully.", "userId": "google_uid", "role_id": 2 }
+```
+- **Response `400`:**
+```json
+{ "error": "'role_id' numeric field is required in body" }
+```
+- **Response `404`:**
+```json
+{ "error": "User not found." }
+```
+
+---
+
 ## Document Routes
 
 ### `POST /api/documents`
