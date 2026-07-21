@@ -1,6 +1,9 @@
 # Entity-Relationship Diagram (ERD) — CertTrack
 
-This document details the database schema and Entity-Relationship Diagram (ERD) for **CertTrack** (FREC Monitoring & Tracking System), designed from the provided React/TypeScript prototype models.
+This document details the database schema and Entity-Relationship Diagram (ERD) for **CertTrack** (FREC Monitoring & Tracking System).
+
+> **Implementation:** The schema is implemented in Prisma at `prisma/schema.prisma` and has been migrated to PostgreSQL.
+> See the [migration SQL](../prisma/migrations/20260721062310_init/migration.sql) for the exact DDL.
 
 ---
 
@@ -36,7 +39,7 @@ Represents submitted certificates and requests.
 | `student_id` | `VARCHAR(50)` | `FOREIGN KEY`, `NOT NULL` | References `USER_ACCOUNT(id)`. |
 | `adviser_id` | `VARCHAR(50)` | `FOREIGN KEY`, `NULL` | References `USER_ACCOUNT(id)`. The assigned faculty adviser. |
 | `status` | `VARCHAR(50)` | `NOT NULL` | Workflow status. Enum value. |
-| `mode` | `TINYINT` | `CHECK (mode IN (1, 2, 3))`, `NULL` | Selected routing mode: 1, 2, or 3. |
+| `mode` | `INTEGER` | `NULL` | Selected routing mode: 1, 2, or 3. Validated by application layer. |
 | `submitted_date` | `DATETIME` | `NOT NULL` | Date when document was first submitted. |
 | `updated_date` | `DATETIME` | `NOT NULL` | Date of last state update. |
 | `remarks` | `TEXT` | `NULL` | Feedback remarks (e.g. rejection reason). |
