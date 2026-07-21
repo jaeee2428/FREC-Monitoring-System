@@ -1,22 +1,26 @@
 export const ROLE_NAMES = {
     1: 'Student',
     2: 'Adviser',
-    3: 'IT Admin',
-    4: 'Program Chair',
-    5: 'Dean',
-    6: 'Reviewer (FREC)'
+    3: 'Program Chair',
+    4: 'Dean',
+    5: 'Reviewer',
+    6: 'IT Admin',
+    7: 'FREC'
 }
 
 export const accounts = [
     {
         initials: 'MS',
+        id: 'U001',
         name: 'Maria Santos',
         email: 'm.santos@university.edu.ph',
         role: 1,
+        program: 'BS Computer Science',
         whitelisted: true,
     },
     {
         initials: 'DE',
+        id: 'U002',
         name: 'Dr. Elena Reyes',
         email: 'e.reyes@university.edu.ph',
         role: 2,
@@ -24,38 +28,35 @@ export const accounts = [
     },
     {
         initials: 'AD',
+        id: 'U003',
         name: 'Admin Dela Rosa',
-        email: 'it.admin@university.edu.ph',
-        role: 3,
-        whitelisted: true,
-    },
-    {
-        initials: 'DJ',
-        name: 'Dr. Jose Santos',
-        email: 'j.santos@university.edu.ph',
-        role: 4,
-        whitelisted: true,
-    },
-    {
-        initials: 'DA',
-        name: 'Dr. Amalia Cruz',
-        email: 'a.cruz@university.edu.ph',
-        role: 5,
-        whitelisted: true,
-    },
-    {
-        initials: 'PR',
-        name: 'Prof. Ramon Dela Cruz',
-        email: 'r.delacruz@university.edu.ph',
+        email: 'podelapena2@up.edu.ph',
         role: 6,
         whitelisted: true,
     },
     {
-        initials: 'ML',
-        name: 'Dr. Mark Lim',
-        email: 'm.lim@university.edu.ph',
-        role: 2,
-        whitelisted: false,
+        initials: 'DJ',
+        id: 'U004',
+        name: 'Dr. Jose Santos',
+        email: 'j.santos@university.edu.ph',
+        role: 3,
+        whitelisted: true,
+    },
+    {
+        initials: 'DA',
+        id: 'U005',
+        name: 'Dr. Amalia Cruz',
+        email: 'a.cruz@university.edu.ph',
+        role: 4,
+        whitelisted: true,
+    },
+    {
+        initials: 'PR',
+        id: 'U006',
+        name: 'Prof. Ramon Dela Cruz',
+        email: 'r.delacruz@university.edu.ph',
+        role: 5,
+        whitelisted: true,
     },
 ]
 
@@ -70,19 +71,17 @@ export function isStudentRole(role) {
 }
 
 export function isProgramChairRole(role) {
-    return role === 4 || (typeof role === 'string' && role.toLowerCase() === 'program chair')
+    return role === 3 || (typeof role === 'string' && role.toLowerCase() === 'program chair')
 }
 
 export function isDeanRole(role) {
-    return role === 5 || (typeof role === 'string' && role.toLowerCase() === 'dean')
+    return role === 4 || (typeof role === 'string' && role.toLowerCase() === 'dean')
 }
 
 export function isReviewerRole(role) {
-    return role === 6 || (typeof role === 'string' && role.toLowerCase().startsWith('reviewer'))
+    return role === 5 || (typeof role === 'string' && role.toLowerCase().startsWith('reviewer'))
 }
 
 export function isITAdminRole(role) {
-    return role === 3 || (typeof role === 'string' && role.toLowerCase() === 'it admin')
+    return role === 6 || (typeof role === 'string' && role.toLowerCase() === 'it admin')
 }
-
-
