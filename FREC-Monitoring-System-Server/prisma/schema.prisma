@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Role {
+  id    Int    @id
+  label String @db.VarChar(100)
+
+  users UserAccount[]
+
+  @@map("ROLE")
+}
+
+model UserAccount {
+  id          String   @id @db.VarChar(50)
+  name        String   @db.VarChar(150)
+  email       String   @unique @db.VarChar(150)
+  role_id     Int
+  role        Role     @relation(fields: [role_id], references: [id])
+  program     String?  @db.VarChar(150)
+  whitelisted Boolean  @default(true)
+
+  studentDocuments Document[]        @relation("StudentDocuments")
+  adviserDocuments Document[]        @relation("AdviserDocuments")
+  historyEntries   DocumentHistory[]
+
+  @@map("USER_ACCOUNT")
+}
+
+model Document {
+  id             String         @id @db.VarChar(50)
+  title          String         @db.VarChar(255)
+  student_id     String         @db.VarChar(50)
+  student        UserAccount    @relation("StudentDocuments", fields: [student_id], references: [id])
+  adviser_id     String?        @db.VarChar(50)
+  adviser        UserAccount?   @relation("AdviserDocuments", fields: [adviser_id], references: [id])
+  status         String         @db.VarChar(50)
+  mode           Int?
+  submitted_date DateTime
+  updated_date   DateTime
+  remarks        String?        @db.Text
+
+  history DocumentHistory[]
+
+  @@map("DOCUMENT")
+}
+
+model DocumentHistory {
+  id          Int         @id @default(autoincrement())
+  document_id String      @db.VarChar(50)
+  document    Document    @relation(fields: [document_id], references: [id])
+  status      String      @db.VarChar(50)
+  actor_id    String      @db.VarChar(50)
+  actor       UserAccount @relation(fields: [actor_id], references: [id])
+  remarks     String?     @db.Text
+  created_at  DateTime    @default(now())
+
+  @@map("DOCUMENT_HISTORY")
+}
