@@ -1,7 +1,7 @@
 
 
 const SYSTEM_STATUSES = {
-  "SUBMITTED":        { label: "SUBMITTED",        color: "#374151", bg: "#F3F4F6" },
+  "SUBMITTED":        { label: "SUBMITTED",        color: "#0E7490", bg: "#CFFAFE" },
   "UNDER REVIEW":     { label: "UNDER REVIEW",     color: "#92400E", bg: "#FEF3C7" },
   "ADVISER APPROVED": { label: "ADVISER APPROVED", color: "#065F46", bg: "#D1FAE5" },
   "FORWARDED-FREC":   { label: "FORWARDED-FREC",   color: "#5B21B6", bg: "#EDE9FE" },

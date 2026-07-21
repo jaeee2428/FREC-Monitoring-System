@@ -147,7 +147,7 @@ export default function StudentDashboard({
             <StatCard label="DISAPPROVED" value={disapprovedCount} valueColor="text-red-600" />
           </div>
 
-          {/* Submit New Document Section */}
+          {/* Submit New Document Section - Inline Embedded */}
           <form onSubmit={handleSimulatedUpload} className="rounded-xl border border-slate-200 bg-white p-5 mb-6 shadow-sm">
             <h3 className="mb-3 text-sm font-semibold text-slate-800">Submit New Document</h3>
             <div className="flex flex-col gap-3">
@@ -158,30 +158,34 @@ export default function StudentDashboard({
                   placeholder="e.g. Thesis Certification Request" 
                   value={docTitle}
                   onChange={(e) => setDocTitle(e.target.value)}
-                  className="w-full rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#7a1f2b]"
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 py-2 text-sm text-slate-700 outline-none focus:border-[#7a1f2b] focus:bg-white transition-all"
                   required
                   disabled={uploading}
                 />
               </div>
+
               <div>
                 <label className="block text-xs font-semibold text-slate-500 mb-1">GOOGLE DRIVE LINK</label>
-                <input 
-                  type="url" 
-                  placeholder="https://drive.google.com/file/d/..." 
-                  value={driveLink}
-                  onChange={(e) => setDriveLink(e.target.value)}
-                  className="w-full rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#7a1f2b]"
-                  required
-                  disabled={uploading}
-                />
+                {/* Flex container keeps input and button on the same horizontal row */}
+                <div className="flex gap-3 items-center">
+                  <input 
+                    type="url" 
+                    placeholder="https://drive.google.com/file/d/..." 
+                    value={driveLink}
+                    onChange={(e) => setDriveLink(e.target.value)}
+                    className="flex-1 rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 py-2 text-sm text-slate-700 outline-none focus:border-[#7a1f2b] focus:bg-white transition-all"
+                    required
+                    disabled={uploading}
+                  />
+                  <button 
+                    type="submit"
+                    disabled={uploading}
+                    className="shrink-0 rounded-lg bg-[#7a1f2b] px-5 py-2 text-sm font-semibold text-white hover:bg-[#5a121d] transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    {uploading ? `Submitting (${uploadProgress}%)...` : "Submit Request"}
+                  </button>
+                </div>
               </div>
-              <button 
-                type="submit"
-                disabled={uploading}
-                className="mt-2 rounded-md bg-[#7a1f2b] py-2.5 text-sm font-semibold text-white hover:bg-[#5a121d] transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-              >
-                {uploading ? `Submitting (${uploadProgress}%)...` : "Submit Request"}
-              </button>
             </div>
           </form>
 

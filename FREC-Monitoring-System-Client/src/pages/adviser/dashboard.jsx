@@ -229,10 +229,11 @@ export default function AdviserDashboard({ user = { name: "Dr. Elena Reyes", ini
                                                 onClick={() => approve(sub.id)}
                                                 disabled={!sub.mode}
                                                 title={!sub.mode ? "Select a Mode before forwarding to FREC" : undefined}
-                                                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${sub.mode
-                                                    ? "cursor-pointer bg-[#e6b8bd] text-[#7a1f2b] hover:bg-[#dba3aa]"
-                                                    : "cursor-not-allowed bg-slate-100 text-slate-400 pointer-events-none"
-                                                    }`}
+                                                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors shadow-sm ${
+                                                    sub.mode
+                                                        ? "bg-[#7a1f2b] text-white hover:bg-[#5a121d] cursor-pointer"
+                                                        : "bg-slate-100 text-slate-400 cursor-not-allowed pointer-events-none"
+                                                }`}
                                             >
                                                 <ArrowRightCircleIcon size={14} /> Approve &rarr; FREC
                                             </button>
