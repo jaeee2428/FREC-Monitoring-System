@@ -1,113 +1,185 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import DashboardLayout from "../../layouts/DashboardLayout.jsx";
 import { StatCard } from "../../components/StatCard.jsx";
-import { FileTextIcon, HomeIcon, RotateIcon, CheckCircleIcon, XCircleIcon, InfoIcon } from "../../components/icons.jsx";
+import {
+    FileTextIcon, HomeIcon, RotateIcon,
+    CheckCircleIcon, XCircleIcon, InfoIcon,
+} from "../../components/icons.jsx";
 import WorkflowGuide from "../../components/WorkflowGuide.jsx";
-import { accounts, ROLE_NAMES } from "../../data/accounts.js";
+import { ROLE_NAMES } from "../../data/accounts.js";
 
-// Simple Inline Search Icon
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 const SearchIcon = ({ size = 16, ...props }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-        <circle cx="11" cy="11" r="8"></circle>
-        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
     </svg>
 );
-
-// Simple Inline Upload Icon
 const UploadIcon = ({ size = 16, ...props }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-        <polyline points="17 8 12 3 7 8"></polyline>
-        <line x1="12" y1="3" x2="12" y2="15"></line>
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+    </svg>
+);
+const SpinnerIcon = ({ size = 16, ...props }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin" {...props}>
+        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
     </svg>
 );
 
-export default function ITAdminDashboard({ user = { name: "Admin Dela Rosa", initials: "AD" }, onLogout = () => {}, view, setView }) {
+export default function ITAdminDashboard({
+    user = { name: "Admin Dela Rosa", initials: "AD" },
+    onLogout = () => { },
+    view,
+    setView,
+}) {
     const [activeTab, setActiveTab] = useState(0);
-    const [usersList, setUsersList] = useState(() => accounts.map(acc => ({ ...acc })));
+    const [usersList, setUsersList] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [toast, setToast] = useState(null);
+    const [toastType, setToastType] = useState("success"); // "success" | "error"
     const [csvFile, setCsvFile] = useState(null);
-    
-    // Track edit roles locally
+    const [uploading, setUploading] = useState(false);
     const [editRole, setEditRole] = useState({});
+    const [savingRole, setSavingRole] = useState({});
+    const fileInputRef = useRef(null);
 
+    // ── Derived counts ────────────────────────────────────────────────────────
     const totalAccounts = usersList.length;
-    const whitelistedCount = usersList.filter((u) => u.whitelisted).length;
-    const blockedCount = usersList.filter((u) => !u.whitelisted).length;
-
-    const showToast = (message) => {
-        setToast(message);
-        window.setTimeout(() => setToast(null), 2500);
-    };
-
-    const handleSaveRole = (email) => {
-        const newRole = editRole[email];
-        if (newRole === undefined) return;
-        
-        setUsersList(prev => prev.map(u => u.email === email ? { ...u, role: newRole } : u));
-        // Update source array as well so logout/login picks it up
-        const accIdx = accounts.findIndex(a => a.email === email);
-        if (accIdx !== -1) accounts[accIdx].role = newRole;
-        
-        showToast(`Role updated successfully for ${email}.`);
-    };
-
-    const handleToggleWhitelist = (email) => {
-        setUsersList(prev => prev.map(u => {
-            if (u.email === email) {
-                const nextState = !u.whitelisted;
-                // Update source array
-                const accIdx = accounts.findIndex(a => a.email === email);
-                if (accIdx !== -1) accounts[accIdx].whitelisted = nextState;
-                showToast(`${u.name} is now ${nextState ? "WHITELISTED" : "BLOCKED"}.`);
-                return { ...u, whitelisted: nextState };
-            }
-            return u;
-        }));
-    };
-
-    const handleCsvSimulate = () => {
-        if (!csvFile) {
-            showToast("Please choose a simulated file first.");
-            return;
-        }
-        
-        // Let's add a couple of new mock users to simulate CSV upload
-        const newUsers = [
-            { initials: "KT", name: "Katherine Torres", email: "k.torres@university.edu.ph", role: 1, whitelisted: true }
-        ];
-
-        let addedCount = 0;
-        setUsersList(prev => {
-            const nextList = [...prev];
-            newUsers.forEach(nu => {
-                if (!nextList.some(u => u.email === nu.email)) {
-                    nextList.push(nu);
-                    accounts.push(nu);
-                    addedCount++;
-                }
-            });
-            return nextList;
-        });
-
-        setCsvFile(null);
-        showToast(`CSV Upload complete: Imported and Whitelisted ${addedCount} user(s).`);
-    };
+    const whitelistedCount = usersList.filter(u => u.whitelisted).length;
+    const blockedCount = usersList.filter(u => !u.whitelisted).length;
 
     const filtered = usersList.filter(u =>
         u.name.toLowerCase().includes(search.toLowerCase()) ||
         u.email.toLowerCase().includes(search.toLowerCase())
     );
 
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    const showToast = (message, type = "success") => {
+        setToast(message);
+        setToastType(type);
+        window.setTimeout(() => setToast(null), 3000);
+    };
+
+    const initialsFor = (name = "") =>
+        name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+
+    // ── Fetch users from DB ───────────────────────────────────────────────────
+    const fetchUsers = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch(`${API}/api/users`);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to fetch users");
+            setUsersList(data.users);
+        } catch (err) {
+            showToast(err.message, "error");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        fetchUsers();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // ── Toggle whitelist ──────────────────────────────────────────────────────
+    const handleToggleWhitelist = async (userId, currentState, name) => {
+        const next = !currentState;
+        // Optimistic update
+        setUsersList(prev => prev.map(u => u.id === userId ? { ...u, whitelisted: next } : u));
+
+        try {
+            const res = await fetch(`${API}/api/users/${userId}/whitelist`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ whitelisted: next }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Update failed");
+            showToast(`${name} is now ${next ? "WHITELISTED" : "BLOCKED"}.`);
+        } catch (err) {
+            // Roll back on failure
+            setUsersList(prev => prev.map(u => u.id === userId ? { ...u, whitelisted: currentState } : u));
+            showToast(err.message, "error");
+        }
+    };
+
+    // ── Save role ─────────────────────────────────────────────────────────────
+    const handleSaveRole = async (userId, email) => {
+        const newRoleId = editRole[email];
+        if (newRoleId === undefined) return;
+
+        setSavingRole(prev => ({ ...prev, [email]: true }));
+        try {
+            const res = await fetch(`${API}/api/users/${userId}/role`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ role_id: newRoleId }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Role update failed");
+
+            setUsersList(prev => prev.map(u =>
+                u.id === userId ? { ...u, role: data.user.role, role_id: newRoleId } : u
+            ));
+            setEditRole(prev => { const n = { ...prev }; delete n[email]; return n; });
+            showToast(`Role updated for ${email}.`);
+        } catch (err) {
+            showToast(err.message, "error");
+        } finally {
+            setSavingRole(prev => { const n = { ...prev }; delete n[email]; return n; });
+        }
+    };
+
+    // ── CSV upload ────────────────────────────────────────────────────────────
+    const handleFileChange = (e) => {
+        const f = e.target.files?.[0];
+        if (f) setCsvFile(f);
+    };
+
+    const handleCsvUpload = async () => {
+        if (!csvFile) {
+            showToast("Please choose a CSV file first.", "error");
+            return;
+        }
+        setUploading(true);
+        try {
+            const form = new FormData();
+            form.append("file", csvFile);
+
+            const res = await fetch(`${API}/api/users/import`, {
+                method: "POST",
+                body: form,
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Upload failed");
+
+            // Refresh the user list from DB
+            await fetchUsers();
+            setCsvFile(null);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+
+            showToast(`${data.message}`);
+        } catch (err) {
+            showToast(err.message, "error");
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    // ── Sidebar ───────────────────────────────────────────────────────────────
     const sidebarIcons = [
         { icon: HomeIcon, label: "Dashboard", onClick: () => setView("Dashboard") },
         { icon: FileTextIcon, label: "Accounts", onClick: () => setView("Accounts") },
         { icon: RotateIcon, label: "Workflow Guide", onClick: () => setView("Workflow Guide") },
     ];
-
     const activeSidebarIndex = view === "Accounts" ? 1 : view === "Workflow Guide" ? 2 : 0;
 
+    // ── Render ────────────────────────────────────────────────────────────────
     return (
         <DashboardLayout
             userName={user.name}
@@ -115,15 +187,24 @@ export default function ITAdminDashboard({ user = { name: "Admin Dela Rosa", ini
             activeTab={activeTab}
             onTabChange={setActiveTab}
             showTabs={false}
-            title={view === "Accounts" ? "User Management — Accounts" : view === "Workflow Guide" ? "Workflow Guide" : "Dashboard"}
+            title={
+                view === "Accounts"
+                    ? "User Management — Accounts"
+                    : view === "Workflow Guide"
+                        ? "Workflow Guide"
+                        : "Dashboard"
+            }
             showAddButton={false}
             sidebarIcons={sidebarIcons}
             activeSidebarIndex={activeSidebarIndex}
             onLogout={onLogout}
             role="it-admin"
         >
-            {view === "Accounts" || view === "Dashboard" ? (
+            {view === "Workflow Guide" ? (
+                <WorkflowGuide />
+            ) : (
                 <div className="space-y-6">
+                    {/* Hero banner */}
                     <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#7a1f2b] to-[#4a1319] px-8 py-6 text-white shadow-sm">
                         <h1 className="!m-0 !text-xl !font-bold !text-white">Welcome, {user.name}!</h1>
                         <p className="mt-1 max-w-xl text-sm text-white/85">
@@ -134,69 +215,106 @@ export default function ITAdminDashboard({ user = { name: "Admin Dela Rosa", ini
                         </div>
                     </div>
 
+                    {/* Stat cards */}
                     <div className="flex gap-4">
                         <StatCard label="TOTAL ACCOUNTS" value={totalAccounts} valueColor="text-slate-800" />
                         <StatCard label="WHITELISTED" value={whitelistedCount} valueColor="text-emerald-600" />
                         <StatCard label="BLOCKED" value={blockedCount} valueColor="text-red-600" />
                     </div>
 
-                    {/* CSV Upload Section */}
+                    {/* CSV Upload */}
                     <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                        <h3 className="mb-3 text-sm font-semibold text-slate-800">Upload Login Credentials</h3>
-                        <div className="mb-4 flex items-start gap-2 rounded-lg border !border-blue-200 !bg-blue-50 px-4 py-3 text-sm !text-blue-800">
-                            <InfoIcon size={16} className="mt-0.5 shrink-0 !text-blue-400" />
+                        <h3 className="mb-3 text-sm font-semibold text-slate-800">Upload Login Credentials via CSV</h3>
+                        <div className="mb-4 flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                            <InfoIcon size={16} className="mt-0.5 shrink-0 text-blue-400" />
                             <p>
-                                Upload a CSV file with columns: <span className="font-mono bg-blue-100 px-1 py-0.5 rounded">name, email, role, program</span>.
-                                Only whitelisted Google accounts will be able to log in to the system.
+                                CSV columns:{" "}
+                                <span className="rounded bg-blue-100 px-1 py-0.5 font-mono">
+                                    name, email, role, program
+                                </span>
+                                . All imported users are automatically <strong>whitelisted</strong>.
+                                Existing emails are updated in-place.
                             </p>
                         </div>
                         <div className="flex items-center gap-3">
-                            <button 
-                                onClick={() => setCsvFile("credentials.csv")}
-                                className="flex-1 flex items-center justify-between px-3 py-2 rounded border border-slate-200 bg-slate-50 text-sm text-slate-500 text-left hover:bg-slate-100 transition-colors"
+                            <label className="flex-1 cursor-pointer">
+                                <div className="flex items-center justify-between rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500 hover:bg-slate-100 transition-colors">
+                                    <span className="flex items-center gap-2">
+                                        <UploadIcon size={14} className="text-slate-400" />
+                                        {csvFile ? csvFile.name : "Choose credentials CSV…"}
+                                    </span>
+                                    {csvFile && (
+                                        <button
+                                            type="button"
+                                            onClick={(e) => { e.preventDefault(); setCsvFile(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
+                                            className="ml-2 text-slate-400 hover:text-red-500"
+                                        >
+                                            ✕
+                                        </button>
+                                    )}
+                                </div>
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept=".csv,text/csv"
+                                    className="hidden"
+                                    onChange={handleFileChange}
+                                />
+                            </label>
+                            <button
+                                onClick={handleCsvUpload}
+                                disabled={uploading || !csvFile}
+                                className="flex items-center gap-2 rounded-md bg-[#7a1f2b] px-4 py-2 text-sm font-semibold text-white hover:bg-[#5a121d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                             >
-                                <span className="flex items-center gap-2">
-                                    <UploadIcon size={14} className="text-slate-400" />
-                                    {csvFile || "Choose simulated credentials.csv"}
-                                </span>
-                            </button>
-                            <button 
-                                onClick={handleCsvSimulate}
-                                className="rounded-md bg-[#7a1f2b] px-4 py-2 text-sm font-semibold text-white hover:bg-[#5a121d] transition-colors cursor-pointer"
-                            >
-                                Upload & Whitelist
+                                {uploading ? <><SpinnerIcon size={14} /> Importing…</> : <><UploadIcon size={14} /> Upload & Whitelist</>}
                             </button>
                         </div>
                     </div>
 
-                    {/* Users Management Section */}
+                    {/* Users table */}
                     <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 px-5 py-3.5 gap-4">
-                            <h2 className="!text-sm !font-semibold !text-slate-800">User Management — Role Assignment</h2>
-                            <div className="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-1.5 bg-slate-50">
+                            <h2 className="!text-sm !font-semibold !text-slate-800">
+                                User Accounts
+                                {!loading && (
+                                    <span className="ml-2 text-xs font-normal text-slate-400">
+                                        ({filtered.length} shown)
+                                    </span>
+                                )}
+                            </h2>
+                            <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5">
                                 <SearchIcon size={14} className="text-slate-400" />
                                 <input
                                     type="text"
-                                    placeholder="Search users..."
+                                    placeholder="Search users…"
                                     value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                    className="bg-transparent text-xs text-slate-700 outline-none placeholder-slate-400 w-40"
+                                    onChange={e => setSearch(e.target.value)}
+                                    className="w-40 bg-transparent text-xs text-slate-700 outline-none placeholder-slate-400"
                                 />
                             </div>
                         </div>
+
                         <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
+                            <table className="w-full text-left text-sm">
                                 <thead>
                                     <tr className="border-b border-slate-100 bg-slate-50/75 text-xs text-slate-500">
                                         <th className="px-5 py-3 font-semibold">No.</th>
                                         <th className="px-5 py-3 font-semibold">User</th>
                                         <th className="px-5 py-3 font-semibold">Role</th>
-                                        <th className="px-5 py-3 font-semibold">Whitelist Status</th>
-                                        <th className="px-5 py-3 font-semibold text-right">Actions</th>
+                                        <th className="px-5 py-3 font-semibold">Status</th>
+                                        <th className="px-5 py-3 text-right font-semibold">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filtered.length === 0 ? (
+                                    {loading ? (
+                                        <tr>
+                                            <td colSpan={5} className="px-5 py-10 text-center text-sm text-slate-400">
+                                                <span className="inline-flex items-center gap-2">
+                                                    <SpinnerIcon size={14} /> Loading accounts…
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ) : filtered.length === 0 ? (
                                         <tr>
                                             <td colSpan={5} className="px-5 py-10 text-center text-sm text-slate-400">
                                                 No users found.
@@ -204,54 +322,60 @@ export default function ITAdminDashboard({ user = { name: "Admin Dela Rosa", ini
                                         </tr>
                                     ) : (
                                         filtered.map((account, idx) => {
-                                            const currentRoleVal = editRole[account.email] !== undefined ? editRole[account.email] : account.role;
+                                            const roleVal = editRole[account.email] !== undefined
+                                                ? editRole[account.email]
+                                                : account.role_id;
+                                            const isDirty = editRole[account.email] !== undefined && editRole[account.email] !== account.role_id;
+                                            const isSaving = savingRole[account.email];
+
                                             return (
-                                                <tr key={account.email} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/40">
+                                                <tr key={account.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/40">
                                                     <td className="px-5 py-3 text-slate-400">{idx + 1}</td>
                                                     <td className="px-5 py-3">
                                                         <div className="flex items-center gap-2.5">
-                                                            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#7a1f2b] text-[11px] font-bold text-white shrink-0">
-                                                                {account.initials}
+                                                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#7a1f2b] text-[11px] font-bold text-white">
+                                                                {initialsFor(account.name)}
                                                             </span>
                                                             <div>
-                                                                <p className="font-semibold text-slate-800 leading-tight">{account.name}</p>
-                                                                <p className="text-[11px] font-mono text-slate-400 mt-0.5">{account.email}</p>
+                                                                <p className="font-semibold leading-tight text-slate-800">{account.name}</p>
+                                                                <p className="mt-0.5 font-mono text-[11px] text-slate-400">{account.email}</p>
+                                                                {account.program && (
+                                                                    <p className="text-[10px] text-slate-400">{account.program}</p>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </td>
                                                     <td className="px-5 py-3">
                                                         <select
-                                                            value={currentRoleVal}
-                                                            onChange={(e) => setEditRole(prev => ({ ...prev, [account.email]: parseInt(e.target.value) }))}
-                                                            className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-700 outline-none cursor-pointer hover:border-slate-300"
+                                                            value={roleVal}
+                                                            onChange={e => setEditRole(prev => ({ ...prev, [account.email]: parseInt(e.target.value) }))}
+                                                            className="cursor-pointer rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-700 outline-none hover:border-slate-300"
                                                         >
-                                                            {[1, 2, 3, 4, 5, 6].map((roleId) => (
-                                                                <option key={roleId} value={roleId}>
-                                                                    {ROLE_NAMES[roleId]}
-                                                                </option>
+                                                            {[1, 2, 3, 4, 5, 6, 7].map(id => (
+                                                                <option key={id} value={id}>{ROLE_NAMES[id]}</option>
                                                             ))}
                                                         </select>
                                                     </td>
                                                     <td className="px-5 py-3">
-                                                        <button 
-                                                            onClick={() => handleToggleWhitelist(account.email)}
-                                                            className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-bold transition-all border cursor-pointer ${
-                                                                account.whitelisted 
-                                                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100" 
-                                                                    : "bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
-                                                            }`}
+                                                        <button
+                                                            onClick={() => handleToggleWhitelist(account.id, account.whitelisted, account.name)}
+                                                            className={`inline-flex cursor-pointer items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-bold transition-all ${account.whitelisted
+                                                                ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                                                                : "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                                                                }`}
                                                         >
-                                                            {account.whitelisted ? <CheckCircleIcon size={12} /> : <XCircleIcon size={12} />}
-                                                            {account.whitelisted ? "WHITELISTED" : "BLOCKED"}
+                                                            {account.whitelisted
+                                                                ? <><CheckCircleIcon size={12} /> WHITELISTED</>
+                                                                : <><XCircleIcon size={12} /> BLOCKED</>}
                                                         </button>
                                                     </td>
                                                     <td className="px-5 py-3 text-right">
                                                         <button
-                                                            disabled={editRole[account.email] === undefined || editRole[account.email] === account.role}
-                                                            onClick={() => handleSaveRole(account.email)}
-                                                            className="rounded bg-[#7a1f2b] px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-[#5a121d] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+                                                            disabled={!isDirty || isSaving}
+                                                            onClick={() => handleSaveRole(account.id, account.email)}
+                                                            className="inline-flex items-center gap-1.5 rounded bg-[#7a1f2b] px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-[#5a121d] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
                                                         >
-                                                            Save Role
+                                                            {isSaving ? <><SpinnerIcon size={12} /> Saving…</> : "Save Role"}
                                                         </button>
                                                     </td>
                                                 </tr>
@@ -263,13 +387,11 @@ export default function ITAdminDashboard({ user = { name: "Admin Dela Rosa", ini
                         </div>
                     </div>
                 </div>
-            ) : view === "Workflow Guide" ? (
-                <WorkflowGuide />
-            ) : null}
+            )}
 
             {/* Toast */}
             {toast && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm text-white shadow-lg z-50">
+                <div className={`fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-lg px-4 py-2.5 text-sm text-white shadow-lg ${toastType === "error" ? "bg-red-700" : "bg-slate-900"}`}>
                     {toast}
                 </div>
             )}

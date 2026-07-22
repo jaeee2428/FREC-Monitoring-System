@@ -1,128 +1,158 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DashboardLayout from "../../layouts/DashboardLayout.jsx";
 import { StatCard } from "../../components/StatCard.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import AllDocuments from "../../components/AllDocuments.jsx";
 import WorkflowGuide from "../../components/WorkflowGuide.jsx";
 import ProgramChairApprovals from "./program-chair-approvals.jsx";
+import DriveLinkButton from "../../components/DriveLinkButton.jsx";
 import {
     InfoIcon,
     XCircleIcon,
     ArrowRightCircleIcon,
+    CheckCircleIcon,
     HomeIcon,
     FileTextIcon,
-    CheckCircleIcon,
     RotateIcon,
 } from "../../components/icons.jsx";
 import ModeBadge from "../../components/ModeBadge.jsx";
 
-const INITIAL_SUBMISSIONS = [
-    {
-        id: "DOC-2026-9021",
-        title: "Optimizing ML Models on Low-Power Embedded Devices",
-        student: "John Doe",
-        studentNo: "2022-04021",
-        program: "BS Computer Science",
-        submitted: "2026-07-12",
-        status: "AWAITING_CHAIR_REVIEW",
-        mode: 1, 
-    },
-    {
-        id: "DOC-2026-3342",
-        title: "Local IoT Smart Irrigation System for Campus Grounds",
-        student: "Maria Clara",
-        studentNo: "2021-09823",
-        program: "BS Information Technology",
-        submitted: "2026-07-14",
-        status: "AWAITING_CHAIR_REVIEW",
-        mode: 2, 
-    },
-    {
-        id: "DOC-2026-5581",
-        title: "Automated Microgrid Routing in Rural Communities",
-        student: "Paolo Villaluz",
-        studentNo: "2022-10492",
-        program: "BS Electrical Engineering",
-        submitted: "2026-07-15",
-        status: "AWAITING_CHAIR_REVIEW",
-        mode: 3, 
-    }
-];
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-const ALL_DOCUMENTS = [
-    { id: 1, docId: "DOC-2024-001", title: "Thesis Certification Request", student: "Maria Santos", studentNo: "2021-00145", adviser: "Dr. Reyes", mode: 1, status: "FORWARDED-FREC", dateUpdated: "2024-06-08" },
-    { id: 2, docId: "DOC-2024-002", title: "Research Certification", student: "Juan dela Cruz", studentNo: "2021-00203", adviser: "Dr. Lim", mode: 2, status: "CERT GENERATED", dateUpdated: "2024-06-10" },
-    { id: 3, docId: "DOC-2024-003", title: "Project Endorsement", student: "Ana Reyes", studentNo: "2022-00087", adviser: "Prof. Garcia", mode: 3, status: "FOR REVIEW", dateUpdated: "2024-06-11" },
-    { id: 4, docId: "DOC-2024-004", title: "Thesis Certification Request", student: "Carlos Mendoza", studentNo: "2020-00312", adviser: "Dr. Reyes", mode: null, status: "SUBMITTED", dateUpdated: "2024-06-06" },
-    { id: 5, docId: "DOC-2024-005", title: "Research Certification", student: "Lisa Tan", studentNo: "2021-00421", adviser: "Dr. Lim", mode: 1, status: "DISAPPROVED", dateUpdated: "2024-06-09" },
-    { id: 6, docId: "DOC-2024-006", title: "Project Endorsement", student: "Miguel Cruz", studentNo: "2022-00156", adviser: "Prof. Garcia", mode: 2, status: "APPROVED", dateUpdated: "2024-06-12" },
-    { id: 7, docId: "DOC-2024-007", title: "Thesis Certification Request", student: "Sofia Bautista", studentNo: "2021-00089", adviser: "Dr. Reyes", mode: 1, status: "ADVISER APPROVED", dateUpdated: "2024-06-09" },
-    { id: 8, docId: "DOC-2024-008", title: "Research Certification", student: "Paolo Villanueva", studentNo: "2020-00445", adviser: "Dr. Lim", mode: 3, status: "DEAN ENDORSED", dateUpdated: "2024-06-11" },
-];
+const SpinnerIcon = ({ size = 16, ...props }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin" {...props}>
+        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+    </svg>
+);
 
-// Reusable Interactive Mode Switch Buttons (Unified Maroon Theme)
 function ModeButton({ mode, active, onClick }) {
-    const getActiveStyle = () => {
-        if (!active) return "border-slate-300 bg-white text-slate-600 hover:border-slate-400";
-        // All active modes use brand maroon for visual consistency
-        return "border-[#7a1f2b] bg-[#7a1f2b] text-white shadow-sm";
-    };
-
     return (
         <button
             onClick={onClick}
-            className={`rounded-md border px-3 py-1 text-xs font-semibold transition-colors ${getActiveStyle()}`}
+            className={`rounded-md border px-3 py-1 text-xs font-semibold transition-colors ${active
+                ? "border-[#7a1f2b] bg-[#7a1f2b] text-white shadow-sm"
+                : "border-slate-300 bg-white text-slate-600 hover:border-slate-400"
+                }`}
         >
             Mode {mode}
         </button>
     );
 }
 
+function toSubmission(d) {
+    return {
+        id: d.id,
+        title: d.title,
+        student: d.student || "—",
+        studentNo: "",
+        program: "",
+        submitted: d.submittedDate ? d.submittedDate.split("T")[0] : "",
+        status: d.status,
+        mode: d.mode || null,
+        driveLink: d.driveLink || null,
+    };
+}
+
 export default function ProgramChairDashboard({ user = { name: "Dr. Jose Santos", initials: "DJ" }, onLogout = () => { }, view, setView }) {
     const [activeTab, setActiveTab] = useState(0);
-    const [submissions, setSubmissions] = useState(INITIAL_SUBMISSIONS);
+    const [submissions, setSubmissions] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [toast, setToast] = useState(null);
+    const [toastType, setToastType] = useState("success");
 
     const pendingCount = submissions.filter((s) => s.status === "AWAITING_CHAIR_REVIEW").length;
     const actionedCount = submissions.filter((s) => s.status === "COMPLETED" || s.status === "FORWARDED-DEAN").length;
     const disapprovedCount = submissions.filter((s) => s.status === "DISAPPROVED").length;
 
-    const setMode = (id, mode) => {
-        setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, mode } : s)));
-    };
-
-    const showToast = (message) => {
+    const showToast = (message, type = "success") => {
         setToast(message);
+        setToastType(type);
         window.setTimeout(() => setToast(null), 2500);
     };
 
-    const handleApprove = (id) => {
-        const sub = submissions.find((s) => s.id === id);
-        if (!sub.mode) return;
-
-        let nextStatus = "COMPLETED";
-        let message;
-
-        if (sub.mode === 1) {
-            nextStatus = "COMPLETED";
-            message = `"${sub.title}" successfully completed and signed (Mode 1).`;
-        } else {
-            nextStatus = "FORWARDED-DEAN";
-            message = `"${sub.title}" signed and forwarded to the Dean's Queue (Mode ${sub.mode}).`;
+    const fetchSubmissions = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch(`${API}/api/documents?role=program%20chair`);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to fetch documents");
+            setSubmissions(data.documents.map(toSubmission));
+        } catch (err) {
+            showToast(err.message, "error");
+        } finally {
+            setLoading(false);
         }
-
-        setSubmissions((prev) =>
-            prev.map((s) => (s.id === id ? { ...s, status: nextStatus } : s))
-        );
-        showToast(message);
     };
 
-    const handleDisapprove = (id) => {
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        fetchSubmissions();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const setMode = async (id, mode) => {
+        setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, mode } : s)));
+        try {
+            const res = await fetch(`${API}/api/documents/${id}/mode`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ mode }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Mode update failed");
+        } catch (err) {
+            await fetchSubmissions();
+            showToast(err.message, "error");
+        }
+    };
+
+    const handleApprove = async (id) => {
         const sub = submissions.find((s) => s.id === id);
-        setSubmissions((prev) =>
-            prev.map((s) => (s.id === id ? { ...s, status: "DISAPPROVED" } : s))
-        );
-        showToast(`"${sub.title}" disapproved and returned.`);
+        if (!sub?.mode) return;
+
+        try {
+            const res = await fetch(`${API}/api/documents/${id}/approve`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ actorId: user.id, role: "program chair" }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Approval failed");
+
+            setSubmissions((prev) =>
+                prev.map((s) => (s.id === id ? { ...s, status: data.nextStatus } : s))
+            );
+
+            const message = sub.mode === 1
+                ? `"${sub.title}" successfully completed and signed (Mode 1).`
+                : `"${sub.title}" signed and forwarded to the Dean's Queue (Mode ${sub.mode}).`;
+            showToast(message);
+        } catch (err) {
+            showToast(err.message, "error");
+        }
+    };
+
+    const handleDisapprove = async (id) => {
+        const sub = submissions.find((s) => s.id === id);
+        const remarks = window.prompt(`Reason for disapproving "${sub?.title}"?`);
+        if (remarks === null) return;
+
+        try {
+            const res = await fetch(`${API}/api/documents/${id}/disapprove`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ actorId: user.id, remarks: remarks || "Disapproved by program chair" }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Disapproval failed");
+
+            setSubmissions((prev) =>
+                prev.map((s) => (s.id === id ? { ...s, status: "DISAPPROVED" } : s))
+            );
+            showToast(`"${sub?.title}" disapproved and returned.`);
+        } catch (err) {
+            showToast(err.message, "error");
+        }
     };
 
     const pendingList = submissions.filter((s) => s.status === "AWAITING_CHAIR_REVIEW");
@@ -133,7 +163,6 @@ export default function ProgramChairDashboard({ user = { name: "Dr. Jose Santos"
         { icon: CheckCircleIcon, label: "Approvals", onClick: () => setView("Approvals") },
         { icon: RotateIcon, label: "Workflow Guide", onClick: () => setView("Workflow Guide") },
     ];
-    
     const activeSidebarIndex = view === "All Documents" ? 1 : view === "Approvals" ? 2 : view === "Workflow Guide" ? 3 : 0;
 
     return (
@@ -144,14 +173,13 @@ export default function ProgramChairDashboard({ user = { name: "Dr. Jose Santos"
             onTabChange={setActiveTab}
             showTabs={view === "Dashboard"}
             title={view === "All Documents" ? "All Documents" : view === "Approvals" ? "Pending Approvals" : view === "Workflow Guide" ? "Workflow Guide" : ""}
-            showAddButton={view === "Dashboard"}
-            onAddClick={() => showToast("Add document form coming soon.")}
+            showAddButton={false}
             sidebarIcons={sidebarIcons}
             activeSidebarIndex={activeSidebarIndex}
             onLogout={onLogout}
         >
             {view === "All Documents" ? (
-                <AllDocuments documents={ALL_DOCUMENTS} />
+                <AllDocuments role="program chair" />
             ) : view === "Approvals" ? (
                 <ProgramChairApprovals
                     submissions={submissions}
@@ -185,19 +213,23 @@ export default function ProgramChairDashboard({ user = { name: "Dr. Jose Santos"
                     <div className="mb-6 flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
                         <InfoIcon size={16} className="mt-0.5 shrink-0" />
                         <p>
-                            <span className="font-semibold">Program Chair Mode Rules:</span> 
+                            <span className="font-semibold">Program Chair Mode Rules:</span>
                             {" "}Approving under <span className="font-bold">Mode 1</span> will complete the chain immediately. Approving under <span className="font-bold">Mode 2 or 3</span> signs and forwards the document directly to the Dean.
                         </p>
                     </div>
 
-                    {/* Pending Submissions Queue */}
+                    {/* Pending Queue */}
                     <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
                         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5">
                             <h2 className="!text-sm !font-semibold !text-slate-800">Pending Actions Queue</h2>
                             <span className="text-xs text-slate-400">{pendingList.length} items</span>
                         </div>
 
-                        {pendingList.length === 0 ? (
+                        {loading ? (
+                            <div className="flex items-center justify-center px-5 py-10 text-sm text-slate-400">
+                                <SpinnerIcon size={14} className="mr-2" /> Loading queue…
+                            </div>
+                        ) : pendingList.length === 0 ? (
                             <div className="px-5 py-10 text-center text-sm text-slate-400">
                                 No pending submissions in your queue.
                             </div>
@@ -208,17 +240,17 @@ export default function ProgramChairDashboard({ user = { name: "Dr. Jose Santos"
                                         <p className="text-sm font-semibold text-slate-800">
                                             {idx + 1}. {sub.title}
                                         </p>
-                                        <p className="mt-1 text-xs text-slate-500">
-                                            {sub.student} · {sub.studentNo} · {sub.program}
-                                        </p>
-                                        
+                                        <p className="mt-1 text-xs text-slate-500">{sub.student}</p>
                                         <div className="mt-2 flex items-center gap-2 text-xs text-slate-400">
                                             <span>ID: {sub.id}</span>
                                             <span>·</span>
                                             <ModeBadge mode={sub.mode} />
                                         </div>
-                                        
-                                        {/* Dynamic Mode Switch Toggles */}
+                                        {sub.driveLink && (
+                                            <div className="mt-2">
+                                                <DriveLinkButton driveLink={sub.driveLink} />
+                                            </div>
+                                        )}
                                         <div className="mt-3 flex items-center gap-2">
                                             <span className="text-xs font-medium text-slate-500">Switch Mode:</span>
                                             {[1, 2, 3].map((m) => (
@@ -241,8 +273,6 @@ export default function ProgramChairDashboard({ user = { name: "Dr. Jose Santos"
                                             >
                                                 <XCircleIcon size={14} /> Disapprove
                                             </button>
-                                            
-                                            {/* Action Button Layout with tailored color schemas */}
                                             {sub.mode === 1 ? (
                                                 <button
                                                     onClick={() => handleApprove(sub.id)}
@@ -267,9 +297,8 @@ export default function ProgramChairDashboard({ user = { name: "Dr. Jose Santos"
                 </>
             )}
 
-            {/* Notification Toast */}
             {toast && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm text-white shadow-lg z-50">
+                <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 rounded-lg px-4 py-2.5 text-sm text-white shadow-lg z-50 ${toastType === "error" ? "bg-red-700" : "bg-slate-900"}`}>
                     {toast}
                 </div>
             )}
