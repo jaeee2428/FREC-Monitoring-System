@@ -3,6 +3,7 @@ import { StatCard } from "../../components/StatCard.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import { XCircleIcon, ArrowRightCircleIcon, CheckCircleIcon } from "../../components/icons.jsx";
 import ModeBadge from "../../components/ModeBadge.jsx";
+import DriveLinkButton from "../../components/DriveLinkButton.jsx";
 
 // Reusable Interactive Mode Switch Buttons (Unified Maroon Theme)
 function ModeButton({ mode, active, onClick }) {
@@ -60,8 +61,8 @@ export default function ProgramChairApprovals({ submissions, onApprove, onDisapp
                 <div className="flex gap-2">
                     {["All", "Pending", "Actioned", "Disapproved"].map((tab) => {
                         const isActive = filter === tab;
-                        const activeStyle = isActive 
-                            ? "bg-[#7a1f2b] text-white" 
+                        const activeStyle = isActive
+                            ? "bg-[#7a1f2b] text-white"
                             : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50";
 
                         return (
@@ -95,10 +96,10 @@ export default function ProgramChairApprovals({ submissions, onApprove, onDisapp
                 ) : (
                     filteredSubmissions.map((sub, idx) => {
                         const isPending = sub.status === "AWAITING_CHAIR_REVIEW";
-                        
+
                         return (
-                            <div 
-                                key={sub.id} 
+                            <div
+                                key={sub.id}
                                 className="flex items-center justify-between px-5 py-5 border-b border-slate-50 last:border-0"
                             >
                                 <div>
@@ -108,13 +109,20 @@ export default function ProgramChairApprovals({ submissions, onApprove, onDisapp
                                     <p className="mt-1 text-xs text-slate-500">
                                         {sub.student} · {sub.studentNo} · {sub.program}
                                     </p>
-                                    
+
                                     <div className="mt-2 flex items-center gap-2 text-xs text-slate-400">
                                         <span>ID: {sub.id}</span>
                                         <span>·</span>
                                         <ModeBadge mode={sub.mode} />
                                     </div>
-                                    
+
+                                    {/* Drive Link */}
+                                    {sub.driveLink && (
+                                        <div className="mt-2">
+                                            <DriveLinkButton driveLink={sub.driveLink} />
+                                        </div>
+                                    )}
+
                                     {/* Switch Mode Controls: Only interactive if the document is still pending review */}
                                     {isPending && (
                                         <div className="mt-3 flex items-center gap-2">
@@ -133,7 +141,7 @@ export default function ProgramChairApprovals({ submissions, onApprove, onDisapp
 
                                 <div className="flex flex-col items-end gap-3">
                                     <StatusBadge status={sub.status} />
-                                    
+
                                     {/* Actions Container: Only show action buttons if state is pending */}
                                     {isPending && (
                                         <div className="flex gap-2">
@@ -143,7 +151,7 @@ export default function ProgramChairApprovals({ submissions, onApprove, onDisapp
                                             >
                                                 <XCircleIcon size={14} /> Disapprove
                                             </button>
-                                            
+
                                             {sub.mode === 1 ? (
                                                 <button
                                                     onClick={() => onApprove(sub.id)}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DashboardLayout from "../../layouts/DashboardLayout.jsx";
 import { StatCard } from "../../components/StatCard.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
@@ -6,6 +6,7 @@ import ModeBadge from "../../components/ModeBadge.jsx";
 import AllDocuments from "../../components/AllDocuments.jsx";
 import WorkflowGuide from "../../components/WorkflowGuide.jsx";
 import DeanApprovals from "./approvals.jsx";
+import DriveLinkButton from "../../components/DriveLinkButton.jsx";
 import {
     InfoIcon,
     XCircleIcon,
@@ -16,59 +17,113 @@ import {
     RotateIcon,
 } from "../../components/icons.jsx";
 
-const ALL_DOCUMENTS = [
-    { id: 1, docId: "DOC-2024-001", title: "Thesis Certification Request", student: "Maria Santos", studentNo: "2021-00145", adviser: "Dr. Reyes", mode: 2, status: "FORWARDED-DEAN", dateUpdated: "2024-06-08" },
-    { id: 2, docId: "DOC-2024-002", title: "Research Certification", student: "Juan dela Cruz", studentNo: "2021-00203", adviser: "Dr. Lim", mode: 3, status: "DEAN ENDORSED", dateUpdated: "2024-06-10" },
-    { id: 3, docId: "DOC-2024-003", title: "Project Endorsement", student: "Ana Reyes", studentNo: "2022-00087", adviser: "Prof. Garcia", mode: 2, status: "COMPLETED", dateUpdated: "2024-06-11" },
-    { id: 4, docId: "DOC-2024-004", title: "Thesis Certification Request", student: "Carlos Mendoza", studentNo: "2020-00312", adviser: "Dr. Reyes", mode: 2, status: "DISAPPROVED", dateUpdated: "2024-06-09" },
-];
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-export default function DeanDashboard({ user = { name: "Dr. Amalia Cruz", initials: "DA" }, onLogout = () => {}, view, setView }) {
+const SpinnerIcon = ({ size = 16, ...props }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin" {...props}>
+        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+    </svg>
+);
+
+function toSubmission(d) {
+    return {
+        id: d.id,
+        title: d.title,
+        student: d.student || "—",
+        studentNo: "",
+        program: "",
+        submitted: d.submittedDate ? d.submittedDate.split("T")[0] : "",
+        status: d.status,
+        mode: d.mode || null,
+        driveLink: d.driveLink || null,
+    };
+}
+
+export default function DeanDashboard({ user = { name: "Dr. Amalia Cruz", initials: "DA" }, onLogout = () => { }, view, setView }) {
     const [activeTab, setActiveTab] = useState(0);
-    const [submissions, setSubmissions] = useState([
-        { id: "DOC-2026-3342", title: "Local IoT Smart Irrigation System for Campus Grounds", student: "Maria Clara", studentNo: "2021-09823", program: "BS Information Technology", submitted: "2026-07-14", status: "FORWARDED-DEAN", mode: 2 },
-        { id: "DOC-2026-5581", title: "Automated Microgrid Routing in Rural Communities", student: "Paolo Villaluz", studentNo: "2022-10492", program: "BS Electrical Engineering", submitted: "2026-07-15", status: "FORWARDED-DEAN", mode: 3 },
-        { id: "DOC-2026-1023", title: "Deep Learning for Crop Disease Detection", student: "Rosa Santos", studentNo: "2022-00523", program: "BS Computer Science", submitted: "2026-07-10", status: "DEAN ENDORSED", mode: 3 },
-    ]);
+    const [submissions, setSubmissions] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [toast, setToast] = useState(null);
+    const [toastType, setToastType] = useState("success");
 
     const pendingCount = submissions.filter((s) => s.status === "FORWARDED-DEAN").length;
     const endorsedCount = submissions.filter((s) => s.status === "DEAN ENDORSED").length;
     const completedCount = submissions.filter((s) => s.status === "COMPLETED").length;
     const disapprovedCount = submissions.filter((s) => s.status === "DISAPPROVED").length;
 
-    const showToast = (message) => {
+    const showToast = (message, type = "success") => {
         setToast(message);
+        setToastType(type);
         window.setTimeout(() => setToast(null), 2500);
     };
 
-    const handleApprove = (id) => {
+    const fetchSubmissions = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch(`${API}/api/documents?role=dean`);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to fetch documents");
+            setSubmissions(data.documents.map(toSubmission));
+        } catch (err) {
+            showToast(err.message, "error");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        fetchSubmissions();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const handleApprove = async (id) => {
         const sub = submissions.find((s) => s.id === id);
         if (!sub) return;
 
-        let nextStatus;
-        let message;
+        try {
+            const res = await fetch(`${API}/api/documents/${id}/approve`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ actorId: user.id, role: "dean" }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Approval failed");
 
-        if (sub.mode === 2) {
-            nextStatus = "COMPLETED";
-            message = `"${sub.title}" has been approved and the certification is now complete (Mode 2).`;
-        } else {
-            nextStatus = "DEAN ENDORSED";
-            message = `Endorsement letter issued for "${sub.title}" and forwarded to Reviewer (Mode 3).`;
+            setSubmissions((prev) =>
+                prev.map((s) => (s.id === id ? { ...s, status: data.nextStatus } : s))
+            );
+
+            const message = sub.mode === 2
+                ? `"${sub.title}" approved — certification complete (Mode 2).`
+                : `Endorsement letter issued for "${sub.title}" — forwarded to Reviewer (Mode 3).`;
+            showToast(message);
+        } catch (err) {
+            showToast(err.message, "error");
         }
-
-        setSubmissions((prev) =>
-            prev.map((s) => (s.id === id ? { ...s, status: nextStatus } : s))
-        );
-        showToast(message);
     };
 
-    const handleDisapprove = (id) => {
+    const handleDisapprove = async (id) => {
         const sub = submissions.find((s) => s.id === id);
-        setSubmissions((prev) =>
-            prev.map((s) => (s.id === id ? { ...s, status: "DISAPPROVED" } : s))
-        );
-        showToast(`"${sub.title}" has been disapproved.`);
+        const remarks = window.prompt(`Reason for disapproving "${sub?.title}"?`);
+        if (remarks === null) return;
+
+        try {
+            const res = await fetch(`${API}/api/documents/${id}/disapprove`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ actorId: user.id, remarks: remarks || "Disapproved by dean" }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Disapproval failed");
+
+            setSubmissions((prev) =>
+                prev.map((s) => (s.id === id ? { ...s, status: "DISAPPROVED" } : s))
+            );
+            showToast(`"${sub?.title}" has been disapproved.`);
+        } catch (err) {
+            showToast(err.message, "error");
+        }
     };
 
     const pendingList = submissions.filter((s) => s.status === "FORWARDED-DEAN");
@@ -80,7 +135,6 @@ export default function DeanDashboard({ user = { name: "Dr. Amalia Cruz", initia
         { icon: CheckCircleIcon, label: queueLabel, onClick: () => setView(queueLabel) },
         { icon: RotateIcon, label: "Workflow Guide", onClick: () => setView("Workflow Guide") },
     ];
-
     const activeSidebarIndex = view === "All Documents" ? 1 : view === queueLabel ? 2 : view === "Workflow Guide" ? 3 : 0;
 
     return (
@@ -98,7 +152,7 @@ export default function DeanDashboard({ user = { name: "Dr. Amalia Cruz", initia
             role="dean"
         >
             {view === "All Documents" ? (
-                <AllDocuments documents={ALL_DOCUMENTS} />
+                <AllDocuments role="dean" />
             ) : view === queueLabel ? (
                 <DeanApprovals
                     submissions={submissions}
@@ -140,7 +194,11 @@ export default function DeanDashboard({ user = { name: "Dr. Amalia Cruz", initia
                             <span className="text-xs text-slate-400">{pendingList.length} items</span>
                         </div>
 
-                        {pendingList.length === 0 ? (
+                        {loading ? (
+                            <div className="flex items-center justify-center px-5 py-10 text-sm text-slate-400">
+                                <SpinnerIcon size={14} className="mr-2" /> Loading queue…
+                            </div>
+                        ) : pendingList.length === 0 ? (
                             <div className="px-5 py-10 text-center text-sm text-slate-400">
                                 No pending submissions in your queue.
                             </div>
@@ -151,15 +209,17 @@ export default function DeanDashboard({ user = { name: "Dr. Amalia Cruz", initia
                                         <p className="text-sm font-semibold text-slate-800">
                                             {idx + 1}. {sub.title}
                                         </p>
-                                        <p className="mt-1 text-xs text-slate-500">
-                                            {sub.student} · {sub.studentNo} · {sub.program}
-                                        </p>
-                                        {/* Swapped inline span for reusable ModeBadge component */}
+                                        <p className="mt-1 text-xs text-slate-500">{sub.student}</p>
                                         <div className="mt-2 flex items-center gap-2 text-xs text-slate-400">
                                             <span>ID: {sub.id}</span>
                                             <span>·</span>
                                             <ModeBadge mode={sub.mode} />
                                         </div>
+                                        {sub.driveLink && (
+                                            <div className="mt-2">
+                                                <DriveLinkButton driveLink={sub.driveLink} />
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="flex flex-col items-end gap-3">
@@ -171,7 +231,6 @@ export default function DeanDashboard({ user = { name: "Dr. Amalia Cruz", initia
                                             >
                                                 <XCircleIcon size={14} /> Disapprove
                                             </button>
-
                                             {sub.mode === 2 ? (
                                                 <button
                                                     onClick={() => handleApprove(sub.id)}
@@ -197,7 +256,7 @@ export default function DeanDashboard({ user = { name: "Dr. Amalia Cruz", initia
             )}
 
             {toast && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm text-white shadow-lg z-50">
+                <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 rounded-lg px-4 py-2.5 text-sm text-white shadow-lg z-50 ${toastType === "error" ? "bg-red-700" : "bg-slate-900"}`}>
                     {toast}
                 </div>
             )}

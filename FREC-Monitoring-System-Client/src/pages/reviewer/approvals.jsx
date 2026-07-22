@@ -3,6 +3,7 @@ import { StatCard } from "../../components/StatCard.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import { XCircleIcon, ArrowRightCircleIcon, CheckCircleIcon } from "../../components/icons.jsx";
 import ModeBadge from "../../components/ModeBadge.jsx";
+import DriveLinkButton from "../../components/DriveLinkButton.jsx";
 
 export default function ReviewerApprovals({ submissions, onApprove, onDisapprove }) {
     const [filter, setFilter] = useState("All");
@@ -37,9 +38,8 @@ export default function ReviewerApprovals({ submissions, onApprove, onDisapprove
                         <button
                             key={tab}
                             onClick={() => setFilter(tab)}
-                            className={`rounded-md px-4 py-1.5 text-xs font-semibold transition-colors ${
-                                filter === tab ? "bg-[#7a1f2b] text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-                            }`}
+                            className={`rounded-md px-4 py-1.5 text-xs font-semibold transition-colors ${filter === tab ? "bg-[#7a1f2b] text-white" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                                }`}
                         >
                             {tab}
                         </button>
@@ -79,6 +79,11 @@ export default function ReviewerApprovals({ submissions, onApprove, onDisapprove
                                         <span>·</span>
                                         <ModeBadge mode={sub.mode} />
                                     </div>
+                                    {sub.driveLink && (
+                                        <div className="mt-2">
+                                            <DriveLinkButton driveLink={sub.driveLink} />
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="flex flex-col items-end gap-3">

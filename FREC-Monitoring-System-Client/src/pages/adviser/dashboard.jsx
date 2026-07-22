@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DashboardLayout from "../../layouts/DashboardLayout.jsx";
 import { StatCard } from "../../components/StatCard.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import AllDocuments from "../../components/AllDocuments.jsx";
 import WorkflowGuide from "../../components/WorkflowGuide.jsx";
 import AdviserApprovals from "./approvals.jsx";
+import DriveLinkButton from "../../components/DriveLinkButton.jsx";
 import {
     InfoIcon,
     XCircleIcon,
@@ -15,53 +16,13 @@ import {
     RotateIcon,
 } from "../../components/icons.jsx";
 
-const INITIAL_SUBMISSIONS = [
-    {
-        id: "DOC-2024-004",
-        title: "Thesis Certification Request",
-        student: "Carlos Mendoza",
-        studentNo: "2020-00312",
-        program: "BS Computer Science",
-        submitted: "2024-06-06",
-        status: "SUBMITTED",
-        mode: null,
-    },
-    {
-        id: "DOC-2024-009",
-        title: "AI Ethics Research Paper",
-        student: "Ana Gonzales",
-        studentNo: "2021-00567",
-        program: "BS Computer Science",
-        submitted: "2024-06-07",
-        status: "FORWARDED-FREC",
-        mode: 2,
-    },
-    {
-        id: "DOC-2024-010",
-        title: "Network Security Assessment",
-        student: "Ben Torres",
-        studentNo: "2022-00341",
-        program: "BS Information Technology",
-        submitted: "2024-06-03",
-        status: "DISAPPROVED",
-        mode: 1,
-    },
-];
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-// Mock data for the shared "All Documents" view
-const ALL_DOCUMENTS = [
-    { id: 1, docId: "DOC-2024-001", title: "Thesis Certification Request", student: "Maria Santos", studentNo: "2021-00145", adviser: "Dr. Reyes", mode: 1, status: "FORWARDED-FREC", dateUpdated: "2024-06-08" },
-    { id: 2, docId: "DOC-2024-002", title: "Research Certification", student: "Juan dela Cruz", studentNo: "2021-00203", adviser: "Dr. Lim", mode: 2, status: "CERT GENERATED", dateUpdated: "2024-06-10" },
-    { id: 3, docId: "DOC-2024-003", title: "Project Endorsement", student: "Ana Reyes", studentNo: "2022-00087", adviser: "Prof. Garcia", mode: 3, status: "FOR REVIEW", dateUpdated: "2024-06-11" },
-    { id: 4, docId: "DOC-2024-004", title: "Thesis Certification Request", student: "Carlos Mendoza", studentNo: "2020-00312", adviser: "Dr. Reyes", mode: null, status: "SUBMITTED", dateUpdated: "2024-06-06" },
-    { id: 5, docId: "DOC-2024-005", title: "Research Certification", student: "Lisa Tan", studentNo: "2021-00421", adviser: "Dr. Lim", mode: 1, status: "DISAPPROVED", dateUpdated: "2024-06-09" },
-    { id: 6, docId: "DOC-2024-006", title: "Project Endorsement", student: "Miguel Cruz", studentNo: "2022-00156", adviser: "Prof. Garcia", mode: 2, status: "APPROVED", dateUpdated: "2024-06-12" },
-    { id: 7, docId: "DOC-2024-007", title: "Thesis Certification Request", student: "Sofia Bautista", studentNo: "2021-00089", adviser: "Dr. Reyes", mode: 1, status: "ADVISER APPROVED", dateUpdated: "2024-06-09" },
-    { id: 8, docId: "DOC-2024-008", title: "Research Certification", student: "Paolo Villanueva", studentNo: "2020-00445", adviser: "Dr. Lim", mode: 3, status: "DEAN ENDORSED", dateUpdated: "2024-06-11" },
-    { id: 9, docId: "DOC-2024-006", title: "Project Endorsement", student: "Miguel Cruz", studentNo: "2022-00156", adviser: "Prof. Garcia", mode: 2, status: "APPROVED", dateUpdated: "2024-06-12" },
-    { id: 10, docId: "DOC-2024-007", title: "Thesis Certification Request", student: "Sofia Bautista", studentNo: "2021-00089", adviser: "Dr. Reyes", mode: 1, status: "ADVISER APPROVED", dateUpdated: "2024-06-09" },
-    { id: 11, docId: "DOC-2024-008", title: "Research Certification", student: "Paolo Villanueva", studentNo: "2020-00445", adviser: "Dr. Lim", mode: 3, status: "DEAN ENDORSED", dateUpdated: "2024-06-11" },
-];
+const SpinnerIcon = ({ size = 16, ...props }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin" {...props}>
+        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+    </svg>
+);
 
 function ModeButton({ mode, active, onClick }) {
     return (
@@ -77,44 +38,131 @@ function ModeButton({ mode, active, onClick }) {
     );
 }
 
+// Shape an API document into the local submission shape
+function toSubmission(d) {
+    return {
+        id: d.id,
+        title: d.title,
+        student: d.student || "—",
+        studentNo: "",
+        program: "",
+        submitted: d.submittedDate ? d.submittedDate.split("T")[0] : "",
+        status: d.status,
+        mode: d.mode || null,
+        driveLink: d.driveLink || null,
+    };
+}
+
 export default function AdviserDashboard({ user = { name: "Dr. Elena Reyes", initials: "DE" }, onLogout = () => { }, view, setView }) {
     const [activeTab, setActiveTab] = useState(0);
-    const [submissions, setSubmissions] = useState(INITIAL_SUBMISSIONS);
+    const [submissions, setSubmissions] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [toast, setToast] = useState(null);
+    const [toastType, setToastType] = useState("success");
 
     const pendingCount = submissions.filter((s) => s.status === "SUBMITTED").length;
     const forwardedCount = submissions.filter((s) => s.status === "FORWARDED-FREC").length;
     const disapprovedCount = submissions.filter((s) => s.status === "DISAPPROVED").length;
 
-    const setMode = (id, mode) => {
-        setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, mode } : s)));
-    };
-
-    const showToast = (message) => {
+    const showToast = (message, type = "success") => {
         setToast(message);
-        window.setTimeout(() => setToast(null), 2200);
+        setToastType(type);
+        window.setTimeout(() => setToast(null), 2500);
     };
 
-    const approve = (id) => {
-        const sub = submissions.find((s) => s.id === id);
-        if (!sub.mode) return;
-        setSubmissions((prev) =>
-            prev.map((s) => (s.id === id ? { ...s, status: "FORWARDED-FREC" } : s))
-        );
-        showToast(`${sub.title} forwarded to FREC (Mode ${sub.mode}).`);
+    // ── Fetch submissions assigned to this adviser ─────────────────────────
+    const fetchSubmissions = async (id) => {
+        setLoading(true);
+        try {
+            // Fetch all SUBMITTED docs (visible to any adviser) plus docs assigned to this adviser
+            const params = new URLSearchParams({ role: 'adviser' });
+            if (id) params.set('adviserId', id);
+            const url = `${API}/api/documents?${params.toString()}`;
+            const res = await fetch(url);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to fetch documents");
+            setSubmissions(data.documents.map(toSubmission));
+        } catch (err) {
+            showToast(err.message, "error");
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const disapprove = (id) => {
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        fetchSubmissions(user?.id);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id]);
+
+    // ── Set mode (local + API) ─────────────────────────────────────────────
+    const setMode = async (id, mode) => {
+        // Optimistic update
+        setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, mode } : s)));
+        try {
+            const res = await fetch(`${API}/api/documents/${id}/mode`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ mode }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Mode update failed");
+        } catch (err) {
+            // Roll back on failure
+            await fetchSubmissions(user?.id);
+            showToast(err.message, "error");
+        }
+    };
+
+    // ── Approve (forward to FREC) ──────────────────────────────────────────
+    const approve = async (id) => {
         const sub = submissions.find((s) => s.id === id);
-        setSubmissions((prev) =>
-            prev.map((s) => (s.id === id ? { ...s, status: "DISAPPROVED" } : s))
-        );
-        showToast(`${sub.title} disapproved.`);
+        if (!sub?.mode) return;
+
+        try {
+            const res = await fetch(`${API}/api/documents/${id}/approve`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ actorId: user.id, role: "adviser" }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Approval failed");
+
+            setSubmissions((prev) =>
+                prev.map((s) => (s.id === id ? { ...s, status: data.nextStatus } : s))
+            );
+            showToast(`"${sub.title}" forwarded to FREC (Mode ${sub.mode}).`);
+        } catch (err) {
+            showToast(err.message, "error");
+        }
+    };
+
+    // ── Disapprove ─────────────────────────────────────────────────────────
+    const disapprove = async (id) => {
+        const sub = submissions.find((s) => s.id === id);
+        const remarks = window.prompt(`Reason for disapproving "${sub?.title}"?`);
+        if (remarks === null) return; // cancelled
+
+        try {
+            const res = await fetch(`${API}/api/documents/${id}/disapprove`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ actorId: user.id, remarks: remarks || "Disapproved by adviser" }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Disapproval failed");
+
+            setSubmissions((prev) =>
+                prev.map((s) => (s.id === id ? { ...s, status: "DISAPPROVED" } : s))
+            );
+            showToast(`"${sub?.title}" disapproved.`);
+        } catch (err) {
+            showToast(err.message, "error");
+        }
     };
 
     const pending = submissions.filter((s) => s.status === "SUBMITTED");
 
-    // Sidebar icons with per-item navigation
     const sidebarIcons = [
         { icon: HomeIcon, label: "Dashboard", onClick: () => setView("Dashboard") },
         { icon: FileTextIcon, label: "All Documents", onClick: () => setView("All Documents") },
@@ -131,14 +179,13 @@ export default function AdviserDashboard({ user = { name: "Dr. Elena Reyes", ini
             onTabChange={setActiveTab}
             showTabs={view === "Dashboard"}
             title={view === "All Documents" ? "All Documents" : view === "Approvals" ? "Pending Approvals" : view === "Workflow Guide" ? "Workflow Guide" : ""}
-            showAddButton={view === "Dashboard"}
-            onAddClick={() => showToast("Add document form would open here.")}
+            showAddButton={false}
             sidebarIcons={sidebarIcons}
             activeSidebarIndex={activeSidebarIndex}
             onLogout={onLogout}
         >
             {view === "All Documents" ? (
-                <AllDocuments documents={ALL_DOCUMENTS} />
+                <AllDocuments role="adviser" />
             ) : view === "Approvals" ? (
                 <AdviserApprovals
                     submissions={submissions}
@@ -169,7 +216,7 @@ export default function AdviserDashboard({ user = { name: "Dr. Elena Reyes", ini
                         <StatCard label="DISAPPROVED" value={disapprovedCount} valueColor="text-red-600" />
                     </div>
 
-                    {/* Adviser instructions */}
+                    {/* Instructions */}
                     <div className="mb-6 flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
                         <InfoIcon size={16} className="mt-0.5 shrink-0" />
                         <p>
@@ -186,23 +233,32 @@ export default function AdviserDashboard({ user = { name: "Dr. Elena Reyes", ini
                             <span className="text-xs text-slate-400">{pending.length} items</span>
                         </div>
 
-                        {pending.length === 0 ? (
+                        {loading ? (
+                            <div className="flex items-center justify-center px-5 py-10 text-sm text-slate-400">
+                                <SpinnerIcon size={14} className="mr-2" /> Loading submissions…
+                            </div>
+                        ) : pending.length === 0 ? (
                             <div className="px-5 py-10 text-center text-sm text-slate-400">
                                 No pending submissions.
                             </div>
                         ) : (
                             pending.map((sub, idx) => (
-                                <div key={sub.id} className="flex items-center justify-between px-5 py-4">
+                                <div key={sub.id} className="flex items-center justify-between border-b border-slate-50 px-5 py-4 last:border-0">
                                     <div>
                                         <p className="text-sm font-semibold text-slate-800">
                                             {idx + 1}. {sub.title}
                                         </p>
                                         <p className="mt-1 text-xs text-slate-500">
-                                            {sub.student} · {sub.studentNo} · {sub.program}
+                                            {sub.student}
                                         </p>
                                         <p className="text-xs text-slate-400">
                                             {sub.id} · Submitted {sub.submitted}
                                         </p>
+                                        {sub.driveLink && (
+                                            <div className="mt-2">
+                                                <DriveLinkButton driveLink={sub.driveLink} />
+                                            </div>
+                                        )}
                                         <div className="mt-3 flex items-center gap-2">
                                             <span className="text-xs font-medium text-slate-500">Mode:</span>
                                             {[1, 2, 3].map((m) => (
@@ -229,13 +285,12 @@ export default function AdviserDashboard({ user = { name: "Dr. Elena Reyes", ini
                                                 onClick={() => approve(sub.id)}
                                                 disabled={!sub.mode}
                                                 title={!sub.mode ? "Select a Mode before forwarding to FREC" : undefined}
-                                                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors shadow-sm ${
-                                                    sub.mode
-                                                        ? "bg-[#7a1f2b] text-white hover:bg-[#5a121d] cursor-pointer"
-                                                        : "bg-slate-100 text-slate-400 cursor-not-allowed pointer-events-none"
-                                                }`}
+                                                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors shadow-sm ${sub.mode
+                                                    ? "bg-[#7a1f2b] text-white hover:bg-[#5a121d] cursor-pointer"
+                                                    : "bg-slate-100 text-slate-400 cursor-not-allowed pointer-events-none"
+                                                    }`}
                                             >
-                                                <ArrowRightCircleIcon size={14} /> Approve &rarr; FREC
+                                                <ArrowRightCircleIcon size={14} /> Approve → FREC
                                             </button>
                                         </div>
                                     </div>
@@ -246,9 +301,8 @@ export default function AdviserDashboard({ user = { name: "Dr. Elena Reyes", ini
                 </>
             )}
 
-            {/* Toast */}
             {toast && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm text-white shadow-lg">
+                <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 rounded-lg px-4 py-2.5 text-sm text-white shadow-lg z-50 ${toastType === "error" ? "bg-red-700" : "bg-slate-900"}`}>
                     {toast}
                 </div>
             )}

@@ -2,6 +2,7 @@ import { useState } from "react";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import { StatCard } from "../../components/StatCard.jsx";
 import { XCircleIcon, ArrowRightCircleIcon, CheckCircleIcon } from "../../components/icons.jsx";
+import DriveLinkButton from "../../components/DriveLinkButton.jsx";
 
 const FILTERS = ["All", "Pending", "Forwarded to FREC", "Disapproved"];
 
@@ -95,6 +96,13 @@ export default function AdviserApprovalsView({ submissions, onApprove, onDisappr
                                             {sub.id} · Submitted {sub.submitted}
                                         </p>
 
+                                        {/* Drive Link */}
+                                        {sub.driveLink && (
+                                            <div className="mt-2">
+                                                <DriveLinkButton driveLink={sub.driveLink} />
+                                            </div>
+                                        )}
+
                                         {/* Mode selector */}
                                         {isPending && (
                                             <div className="mt-3 flex items-center gap-2">
@@ -137,11 +145,10 @@ export default function AdviserApprovalsView({ submissions, onApprove, onDisappr
                                                 onClick={() => onApprove(sub.id)}
                                                 disabled={!sub.mode}
                                                 title={!sub.mode ? "Select a Mode before approving" : undefined}
-                                                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors shadow-sm ${
-                                                    sub.mode
-                                                        ? "bg-[#7a1f2b] text-white hover:bg-[#5a121d] cursor-pointer"
-                                                        : "bg-slate-100 text-slate-400 cursor-not-allowed pointer-events-none"
-                                                }`}
+                                                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors shadow-sm ${sub.mode
+                                                    ? "bg-[#7a1f2b] text-white hover:bg-[#5a121d] cursor-pointer"
+                                                    : "bg-slate-100 text-slate-400 cursor-not-allowed pointer-events-none"
+                                                    }`}
                                             >
                                                 <ArrowRightCircleIcon size={13} /> Approve → FREC
                                             </button>

@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -42,6 +43,7 @@ model Document {
   mode           Int?
   submitted_date DateTime
   updated_date   DateTime
+  drive_link     String?        @db.Text
   remarks        String?        @db.Text
 
   history DocumentHistory[]
