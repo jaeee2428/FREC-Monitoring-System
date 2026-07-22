@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "../../App.css";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import { StatCard } from "../../components/StatCard";
@@ -8,6 +8,8 @@ import {
   HomeIcon,
   RotateIcon,
 } from "../../components/icons";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001/api";
 
 const INITIAL_REQUESTS = [
   {
@@ -42,6 +44,19 @@ const INITIAL_REQUESTS = [
   },
 ];
 
+const STORAGE_KEY = "certtrack_student_requests";
+
+function getInitialRequests() {
+  if (typeof window === "undefined") return INITIAL_REQUESTS;
+  const saved = window.localStorage.getItem(STORAGE_KEY);
+  if (!saved) return INITIAL_REQUESTS;
+  try {
+    return JSON.parse(saved);
+  } catch {
+    return INITIAL_REQUESTS;
+  }
+}
+
 export default function StudentDashboard({
   user = { name: "Juan Dela Cruz", initials: "JD" },
   onLogout,
@@ -49,12 +64,45 @@ export default function StudentDashboard({
   setView,
 }) {
   const [activeTab, setActiveTab] = useState(0);
-  const [requests, setRequests] = useState(INITIAL_REQUESTS);
+  const [requests, setRequests] = useState(getInitialRequests);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [docTitle, setDocTitle] = useState("");
   const [driveLink, setDriveLink] = useState("");
   const [toast, setToast] = useState(null);
+
+  useEffect(() => {
+    async function fetchBackendDocuments() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/documents`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.documents && data.documents.length > 0) {
+            const mapped = data.documents.map((d) => ({
+              id: d.id,
+              title: d.title,
+              type: "Thesis Certification",
+              submitted: d.submittedDate ? new Date(d.submittedDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+              status: d.status,
+              note: d.driveLink ? `Document submitted via Google Drive: ${d.driveLink}` : (d.remarks || "No remarks"),
+              mode: d.mode || 1,
+              modeStr: d.mode ? `Mode ${d.mode}` : "Mode 1"
+            }));
+            setRequests(mapped);
+          }
+        }
+      } catch (err) {
+        console.warn("Backend API not reached, using local storage fallback.", err);
+      }
+    }
+    fetchBackendDocuments();
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(requests));
+    }
+  }, [requests]);
 
   const pendingCount = requests.filter((item) => !["APPROVED", "COMPLETED", "DISAPPROVED"].includes(item.status)).length;
   const approvedCount = requests.filter((item) => ["APPROVED", "COMPLETED"].includes(item.status)).length;
@@ -65,42 +113,79 @@ export default function StudentDashboard({
     window.setTimeout(() => setToast(null), 2500);
   };
 
-  const handleSimulatedUpload = (e) => {
+  const handleSimulatedUpload = async (e) => {
     if (e) e.preventDefault();
     if (!docTitle.trim() || !driveLink.trim()) {
       showToast("Please fill in both the Document Title and Google Drive Link.");
       return;
     }
     if (uploading) return;
+
+    // Basic Google Drive URL check
+    const gdriveRegex = /^(https?:\/\/)?(drive|docs)\.google\.com\/.+$/i;
+    if (!gdriveRegex.test(driveLink.trim())) {
+      showToast("Invalid document link. Please enter a valid Google Drive link.");
+      return;
+    }
+
     setUploading(true);
-    setUploadProgress(10);
-    
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setTimeout(() => {
-            const newRequest = {
-              id: `REQ-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-              title: docTitle,
-              type: "Thesis Certification",
-              submitted: new Date().toISOString().split("T")[0],
-              status: "SUBMITTED",
-              note: `Document submitted via Google Drive: ${driveLink}`,
-              mode: 1,
-              modeStr: "Mode 1"
-            };
-            setRequests((prevReqs) => [newRequest, ...prevReqs]);
-            setUploading(false);
-            setDocTitle("");
-            setDriveLink("");
-            showToast("Google Drive Link submitted successfully.");
-          }, 400);
-          return 100;
-        }
-        return prev + 30;
+    setUploadProgress(40);
+
+    const titleToSubmit = docTitle.trim();
+    const linkToSubmit = driveLink.trim();
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/documents`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: titleToSubmit,
+          driveLink: linkToSubmit,
+          studentId: "U001",
+          adviserId: "U002"
+        })
       });
-    }, 200);
+
+      setUploadProgress(90);
+
+      if (res.ok) {
+        const createdDoc = await res.json();
+        const newRequest = {
+          id: createdDoc.id || `REQ-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+          title: createdDoc.title || titleToSubmit,
+          type: "Thesis Certification",
+          submitted: new Date().toISOString().split("T")[0],
+          status: createdDoc.status || "SUBMITTED",
+          note: `Document submitted via Google Drive: ${linkToSubmit}`,
+          mode: 1,
+          modeStr: "Mode 1"
+        };
+        setRequests((prevReqs) => [newRequest, ...prevReqs]);
+        showToast("Google Drive link submitted.");
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        showToast(errorData.error || "Failed to submit document to server.");
+      }
+    } catch {
+      // Fallback if backend server is offline
+      const newRequest = {
+        id: `REQ-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+        title: titleToSubmit,
+        type: "Thesis Certification",
+        submitted: new Date().toISOString().split("T")[0],
+        status: "SUBMITTED",
+        note: `Document submitted via Google Drive: ${linkToSubmit}`,
+        mode: 1,
+        modeStr: "Mode 1"
+      };
+      setRequests((prevReqs) => [newRequest, ...prevReqs]);
+      showToast("Saved locally (Server offline).");
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+      setDocTitle("");
+      setDriveLink("");
+    }
   };
 
   const sidebarIcons = [
@@ -153,9 +238,9 @@ export default function StudentDashboard({
             <div className="flex flex-col gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-500 mb-1">DOCUMENT TITLE</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. Thesis Certification Request" 
+                <input
+                  type="text"
+                  placeholder="e.g. Thesis Certification Request"
                   value={docTitle}
                   onChange={(e) => setDocTitle(e.target.value)}
                   className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 py-2 text-sm text-slate-700 outline-none focus:border-[#7a1f2b] focus:bg-white transition-all"
@@ -168,16 +253,16 @@ export default function StudentDashboard({
                 <label className="block text-xs font-semibold text-slate-500 mb-1">GOOGLE DRIVE LINK</label>
                 {/* Flex container keeps input and button on the same horizontal row */}
                 <div className="flex gap-3 items-center">
-                  <input 
-                    type="url" 
-                    placeholder="https://drive.google.com/file/d/..." 
+                  <input
+                    type="url"
+                    placeholder="https://drive.google.com/file/d/..."
                     value={driveLink}
                     onChange={(e) => setDriveLink(e.target.value)}
                     className="flex-1 rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 py-2 text-sm text-slate-700 outline-none focus:border-[#7a1f2b] focus:bg-white transition-all"
                     required
                     disabled={uploading}
                   />
-                  <button 
+                  <button
                     type="submit"
                     disabled={uploading}
                     className="shrink-0 rounded-lg bg-[#7a1f2b] px-5 py-2 text-sm font-semibold text-white hover:bg-[#5a121d] transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
