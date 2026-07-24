@@ -3,9 +3,8 @@ export const ROLE_NAMES = {
     2: 'Adviser',
     3: 'Program Chair',
     4: 'Dean',
-    5: 'Reviewer',
+    5: 'FREC',
     6: 'IT Admin',
-    7: 'FREC'
 }
 
 export const accounts = [
@@ -13,7 +12,7 @@ export const accounts = [
         initials: 'MS',
         id: 'U001',
         name: 'Maria Santos',
-        email: 'm.santos@university.edu.ph',
+        email: 'jamesty016@gmail.com',
         role: 1,
         program: 'BS Computer Science',
         whitelisted: true,
@@ -30,7 +29,7 @@ export const accounts = [
         initials: 'AD',
         id: 'U003',
         name: 'Admin Dela Rosa',
-        email: 'podelapena2@up.edu.ph',
+        email: 'jpty@up.edu.ph',
         role: 6,
         whitelisted: true,
     },
@@ -78,8 +77,8 @@ export function isDeanRole(role) {
     return role === 4 || (typeof role === 'string' && role.toLowerCase() === 'dean')
 }
 
-export function isReviewerRole(role) {
-    return role === 5 || (typeof role === 'string' && role.toLowerCase().startsWith('reviewer'))
+export function isFRECRole(role) {
+    return role === 5 || (typeof role === 'string' && role.toLowerCase() === 'frec')
 }
 
 export function isITAdminRole(role) {

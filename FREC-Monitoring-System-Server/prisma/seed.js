@@ -1,5 +1,5 @@
 const { PrismaPg } = require("@prisma/adapter-pg");
-const { PrismaClient } = require("@prisma/client");
+const { PrismaClient } = require("../src/generated/prisma");
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL || "postgresql://certtrack_admin:certtrack_pass@localhost:5432/certtrack_dev",
@@ -15,15 +15,14 @@ async function main() {
     { id: 2, label: "Adviser" },
     { id: 3, label: "Program Chair" },
     { id: 4, label: "Dean" },
-    { id: 5, label: "Reviewer" },
+    { id: 5, label: "FREC" },
     { id: 6, label: "IT Admin" },
-    { id: 7, label: "FREC" },
   ];
 
   for (const r of roles) {
     await prisma.role.upsert({ where: { id: r.id }, update: {}, create: r });
   }
-  console.log("  ✓ 7 roles seeded");
+  console.log("  ✓ 6 roles seeded");
 
   // User accounts
   const users = [
@@ -33,12 +32,29 @@ async function main() {
     { id: "U004", name: "Dr. Jose Santos", email: "j.santos@university.edu.ph", role_id: 3, program: null, whitelisted: true },
     { id: "U005", name: "Dr. Amalia Cruz", email: "a.cruz@university.edu.ph", role_id: 4, program: null, whitelisted: true },
     { id: "U006", name: "Prof. Ramon Dela Cruz", email: "r.delacruz@university.edu.ph", role_id: 5, program: null, whitelisted: true },
+    { id: "U-AMFTZXN0ET", name: "James Ty", email: "jamesty016@gmail.com", role_id: 1, program: "BS Computer Science", whitelisted: true },
+    { id: "U-ANB0EUB1CC", name: "Jpty", email: "jpty@up.edu.ph", role_id: 6, program: "IT Administration", whitelisted: true },
+    { id: "U-ANB0ETAXNK", name: "James Ty", email: "jpty016@gmail.com", role_id: 2, program: null, whitelisted: true },
   ];
 
   for (const u of users) {
     await prisma.userAccount.upsert({ where: { email: u.email }, update: {}, create: u });
   }
   console.log("  ✓ 6 users seeded");
+
+  // Student-Adviser assignments
+  const assignments = [
+    { student_id: "U001", adviser_id: "U002" },
+  ];
+
+  for (const a of assignments) {
+    await prisma.studentAdviser.upsert({
+      where: { student_id_adviser_id: { student_id: a.student_id, adviser_id: a.adviser_id } },
+      update: {},
+      create: a,
+    });
+  }
+  console.log("  ✓ 1 student-adviser assignment seeded");
 
   // Documents
   const documents = [

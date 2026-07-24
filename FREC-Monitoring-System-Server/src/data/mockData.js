@@ -3,7 +3,7 @@ const ROLE_NAMES = {
     2: 'Adviser',
     3: 'Program Chair',
     4: 'Dean',
-    5: 'Reviewer',
+    5: 'FREC',
     6: 'IT Admin',
     7: 'FREC'
 }
@@ -12,7 +12,7 @@ const users = [
     {
         id: 'U001',
         name: 'Maria Santos',
-        email: 'm.santos@university.edu.ph',
+        email: 'jamesty016@gmail.com',
         role_id: 1,
         role: 'Student',
         program: 'BS Computer Science',
@@ -30,7 +30,7 @@ const users = [
     {
         id: 'U003',
         name: 'Admin Dela Rosa',
-        email: 'podelapena2@up.edu.ph',
+        email: 'jpty@up.edu.ph',
         role_id: 6,
         role: 'IT Admin',
         program: null,
@@ -59,7 +59,7 @@ const users = [
         name: 'Prof. Ramon Dela Cruz',
         email: 'r.delacruz@university.edu.ph',
         role_id: 5,
-        role: 'Reviewer',
+        role: 'FREC',
         program: null,
         whitelisted: true,
     },
