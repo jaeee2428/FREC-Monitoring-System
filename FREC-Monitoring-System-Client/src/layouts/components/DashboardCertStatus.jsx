@@ -1,6 +1,6 @@
 import { useState } from "react";
 import StatusBadge from "../../components/StatusBadge";
-import { EyeIcon } from "../../components/icons";
+import { EyeIcon, PencilIcon, TrashIcon } from "../../components/icons";
 import RequestProgress from "../../components/RequestProgress";
 import ModeBadge from "../../components/ModeBadge";
 import DriveLinkButton from "../../components/DriveLinkButton";
@@ -23,12 +23,16 @@ const TABLE_HEADERS = [
   "Action",
 ];
 
+const EDITABLE_STATUSES = ["SUBMITTED", "DISAPPROVED"];
+
 export default function DashboardCertStatus({
   requests = [],
   title = "Recent Requests",
   role = "student",
   onViewDetails,
   onDownload,
+  onEdit,
+  onDelete,
 }) {
   const [expandedRequestId, setExpandedRequestId] = useState(null);
   const [viewMode, setViewMode] = useState("table");
@@ -126,6 +130,26 @@ export default function DashboardCertStatus({
                         <DownloadIcon size={14} />
                       </button>
                     )}
+                    {role === "student" && EDITABLE_STATUSES.includes(request.status) && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => onEdit?.(request)}
+                          title="Edit"
+                          className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-white transition-colors hover:bg-blue-700"
+                        >
+                          <PencilIcon size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onDelete?.(request)}
+                          title="Cancel"
+                          className="flex h-9 w-9 items-center justify-center rounded-full bg-red-600 text-white transition-colors hover:bg-red-700"
+                        >
+                          <TrashIcon size={14} />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -195,6 +219,26 @@ export default function DashboardCertStatus({
                     >
                       <DownloadIcon size={14} />
                     </button>
+                  )}
+                  {role === "student" && EDITABLE_STATUSES.includes(request.status) && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => onEdit?.(request)}
+                        title="Edit"
+                        className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-white transition-colors hover:bg-blue-700"
+                      >
+                        <PencilIcon size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDelete?.(request)}
+                        title="Cancel"
+                        className="flex h-9 w-9 items-center justify-center rounded-full bg-red-600 text-white transition-colors hover:bg-red-700"
+                      >
+                        <TrashIcon size={14} />
+                      </button>
+                    </>
                   )}
                 </div>
               </div>

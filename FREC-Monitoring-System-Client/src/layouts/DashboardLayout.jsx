@@ -18,6 +18,7 @@ export default function DashboardLayout({
     activeSidebarIndex = 0,
     onLogout = () => {},
     role,
+    userProgram,
     title = "",
     children,
 }) {
@@ -34,7 +35,7 @@ export default function DashboardLayout({
                 flexDirection: "column",
             }}
         >
-            <DashboardHeader userName={userName} userInitials={userInitials} />
+            <DashboardHeader userName={userName} userInitials={userInitials} role={role} program={userProgram} />
 
             <div className="flex flex-1 overflow-hidden">
                 <DashboardSidebar

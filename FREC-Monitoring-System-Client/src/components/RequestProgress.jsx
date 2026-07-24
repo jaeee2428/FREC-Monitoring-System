@@ -9,7 +9,7 @@ const STATUS_TO_KEY = {
   "PC APPROVED": "forwarded_pc",
   "FORWARDED-DEAN": "forwarded_dean",
   "DEAN ENDORSED": "forwarded_dean",
-  "FOR REVIEW": "forwarded_reviewer",
+  "FOR REVIEW": "forwarded_frec_final",
   "APPROVED": "completed",
   "COMPLETED": "completed",
 };
@@ -28,9 +28,9 @@ export default function RequestProgress({ modeStr, mode: modeProp, status, compa
         { k: "approved_adviser", l: "Adviser" },
         { k: "forwarded_frec", l: "FREC" },
         { k: "forwarded_dean", l: "Dean" },
-        { k: "forwarded_reviewer", l: "Reviewer" },
+        { k: "forwarded_frec_final", l: "FREC" },
         { k: "cert_generated", l: "Certificate" },
-        { k: "completed", l: "FICS FREC" }
+        { k: "completed", l: "FREC" }
       ]
     : mode === 2
     ? [

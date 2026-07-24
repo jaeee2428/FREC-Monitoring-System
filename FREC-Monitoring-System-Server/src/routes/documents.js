@@ -6,13 +6,13 @@ const prisma = require('../lib/prisma');
 // | Current Status          | Actor Role    | Mode    | Next Status            |
 // |-------------------------|---------------|---------|------------------------|
 // | SUBMITTED               | Adviser       | 1,2,3   | FORWARDED-FREC         |
-// | FORWARDED-FREC          | Reviewer      | 1,2,3   | AWAITING_CHAIR_REVIEW  |
+// | FORWARDED-FREC          | FREC          | 1,2,3   | AWAITING_CHAIR_REVIEW  |
 // | AWAITING_CHAIR_REVIEW   | Program Chair | 1       | COMPLETED              |
 // | AWAITING_CHAIR_REVIEW   | Program Chair | 2 or 3  | FORWARDED-DEAN         |
 // | FORWARDED-DEAN          | Dean          | 2       | COMPLETED              |
 // | FORWARDED-DEAN          | Dean          | 3       | DEAN ENDORSED          |
-// | DEAN ENDORSED           | Reviewer      | 3       | FOR REVIEW             |
-// | FOR REVIEW              | Reviewer      | 3       | COMPLETED              |
+// | DEAN ENDORSED           | FREC          | 3       | FOR REVIEW             |
+// | FOR REVIEW              | FREC          | 3       | COMPLETED              |
 // Any role → DISAPPROVE → DISAPPROVED (terminal)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -22,7 +22,6 @@ function nextDocId() {
     return `DOC-${year}-${rand}`;
 }
 
-// Helper: serialize a Prisma Document row into the API shape
 function serializeDoc(d) {
     return {
         id: d.id,
@@ -51,14 +50,20 @@ router.post('/', async (req, res) => {
     }
 
     try {
-        // Verify student exists
         const student = await prisma.userAccount.findUnique({ where: { id: studentId } });
         if (!student) {
             return res.status(404).json({ error: 'Student account not found' });
         }
 
-        // Find any whitelisted adviser to assign if not provided
         let resolvedAdviserId = adviserId || null;
+        if (!resolvedAdviserId) {
+            const assignment = await prisma.studentAdviser.findFirst({
+                where: { student_id: studentId },
+            });
+            if (assignment) {
+                resolvedAdviserId = assignment.adviser_id;
+            }
+        }
         if (!resolvedAdviserId) {
             const defaultAdviser = await prisma.userAccount.findFirst({
                 where: { role_id: 2, whitelisted: true },
@@ -84,7 +89,6 @@ router.post('/', async (req, res) => {
             },
         });
 
-        // Initial history entry
         await prisma.documentHistory.create({
             data: {
                 document_id: docId,
@@ -119,25 +123,21 @@ router.get('/', async (req, res) => {
     const { studentId, adviserId, role } = req.query;
 
     try {
-        let where = {};
+        let where = { deleted_at: null };
 
         if (studentId) {
             where.student_id = studentId;
+        } else if (role && (role.toLowerCase() === 'adviser' || role.toLowerCase() === 'advisor')) {
+            if (adviserId) {
+                where.OR = [
+                    { status: 'SUBMITTED' },
+                    { adviser_id: adviserId },
+                ];
+            } else {
+                where.status = 'SUBMITTED';
+            }
         } else if (adviserId) {
             where.adviser_id = adviserId;
-        } else if (role) {
-            const r = role.toLowerCase();
-            if (r === 'adviser' || r === 'advisor') {
-                // Advisers see all SUBMITTED docs (unassigned queue) plus their own
-                where.status = 'SUBMITTED';
-            } else if (r === 'reviewer' || r === 'frec') {
-                where.status = { in: ['FORWARDED-FREC', 'DEAN ENDORSED', 'FOR REVIEW'] };
-            } else if (r === 'program chair') {
-                where.status = 'AWAITING_CHAIR_REVIEW';
-            } else if (r === 'dean') {
-                where.status = 'FORWARDED-DEAN';
-            }
-            // IT Admin / unknown role → no filter, return all docs
         }
 
         const docs = await prisma.document.findMany({
@@ -192,6 +192,54 @@ router.get('/:id', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PUT /api/documents/:id
+// Body: { title?, driveLink? }
+// ─────────────────────────────────────────────────────────────────────────────
+router.put('/:id', async (req, res) => {
+    const { id } = req.params;
+    const { title, driveLink } = req.body;
+
+    try {
+        const doc = await prisma.document.findUnique({ where: { id } });
+        if (!doc) return res.status(404).json({ error: 'Document not found' });
+
+        const data = { updated_date: new Date() };
+        if (title !== undefined) data.title = title;
+        if (driveLink !== undefined) data.drive_link = driveLink;
+
+        const updated = await prisma.document.update({ where: { id }, data });
+
+        res.status(200).json(serializeDoc(updated));
+    } catch (err) {
+        if (err.code === 'P2025') return res.status(404).json({ error: 'Document not found' });
+        console.error('PUT /api/documents/:id error:', err);
+        res.status(500).json({ error: 'Server error updating document' });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DELETE /api/documents/:id (soft delete)
+// ─────────────────────────────────────────────────────────────────────────────
+router.delete('/:id', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const doc = await prisma.document.findUnique({ where: { id } });
+        if (!doc) return res.status(404).json({ error: 'Document not found' });
+
+        await prisma.document.update({
+            where: { id },
+            data: { deleted_at: new Date(), status: 'CANCELLED', updated_date: new Date() },
+        });
+
+        res.status(200).json({ message: 'Document cancelled', id });
+    } catch (err) {
+        console.error('DELETE /api/documents/:id error:', err);
+        res.status(500).json({ error: 'Server error deleting document' });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // PUT /api/documents/:id/mode
 // Body: { mode: 1|2|3 }
 // ─────────────────────────────────────────────────────────────────────────────
@@ -238,15 +286,15 @@ router.put('/:id/approve', async (req, res) => {
 
         if (r === 'adviser' && status === 'SUBMITTED') {
             nextStatus = 'FORWARDED-FREC';
-        } else if ((r === 'reviewer' || r === 'frec') && status === 'FORWARDED-FREC') {
+        } else if (r === 'frec' && status === 'FORWARDED-FREC') {
             nextStatus = 'AWAITING_CHAIR_REVIEW';
         } else if (r === 'program chair' && status === 'AWAITING_CHAIR_REVIEW') {
             nextStatus = mode === 1 ? 'COMPLETED' : 'FORWARDED-DEAN';
         } else if (r === 'dean' && status === 'FORWARDED-DEAN') {
             nextStatus = mode === 2 ? 'COMPLETED' : 'DEAN ENDORSED';
-        } else if ((r === 'reviewer' || r === 'frec') && status === 'DEAN ENDORSED' && mode === 3) {
+        } else if (r === 'frec' && status === 'DEAN ENDORSED' && mode === 3) {
             nextStatus = 'FOR REVIEW';
-        } else if ((r === 'reviewer' || r === 'frec') && status === 'FOR REVIEW' && mode === 3) {
+        } else if (r === 'frec' && status === 'FOR REVIEW' && mode === 3) {
             nextStatus = 'COMPLETED';
         } else {
             return res.status(400).json({

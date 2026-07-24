@@ -4,17 +4,18 @@ import { StatCard } from "../../components/StatCard.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import AllDocuments from "../../components/AllDocuments.jsx";
 import WorkflowGuide from "../../components/WorkflowGuide.jsx";
-import AdviserApprovals from "./approvals.jsx";
 import DriveLinkButton from "../../components/DriveLinkButton.jsx";
+import DisapproveModal from "../../components/DisapproveModal.jsx";
 import {
-    InfoIcon,
+    CheckCircleIcon,
     XCircleIcon,
     ArrowRightCircleIcon,
+    InfoIcon,
     HomeIcon,
     FileTextIcon,
-    CheckCircleIcon,
     RotateIcon,
 } from "../../components/icons.jsx";
+import AdviserApprovals from "./approvals.jsx";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -59,6 +60,10 @@ export default function AdviserDashboard({ user = { name: "Dr. Elena Reyes", ini
     const [loading, setLoading] = useState(true);
     const [toast, setToast] = useState(null);
     const [toastType, setToastType] = useState("success");
+    const [disapproving, setDisapproving] = useState(null);
+    const [editingDoc, setEditingDoc] = useState(null);
+    const [editTitle, setEditTitle] = useState("");
+    const [editDriveLink, setEditDriveLink] = useState("");
 
     const pendingCount = submissions.filter((s) => s.status === "SUBMITTED").length;
     const forwardedCount = submissions.filter((s) => s.status === "FORWARDED-FREC").length;
@@ -138,24 +143,61 @@ export default function AdviserDashboard({ user = { name: "Dr. Elena Reyes", ini
     };
 
     // ── Disapprove ─────────────────────────────────────────────────────────
-    const disapprove = async (id) => {
-        const sub = submissions.find((s) => s.id === id);
-        const remarks = window.prompt(`Reason for disapproving "${sub?.title}"?`);
-        if (remarks === null) return; // cancelled
+    const disapprove = async (id, remarks) => {
+        setDisapproving(null);
 
         try {
             const res = await fetch(`${API}/api/documents/${id}/disapprove`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ actorId: user.id, remarks: remarks || "Disapproved by adviser" }),
+                body: JSON.stringify({ actorId: user.id, remarks }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Disapproval failed");
 
+            const sub = submissions.find((s) => s.id === id);
             setSubmissions((prev) =>
                 prev.map((s) => (s.id === id ? { ...s, status: "DISAPPROVED" } : s))
             );
             showToast(`"${sub?.title}" disapproved.`);
+        } catch (err) {
+            showToast(err.message, "error");
+        }
+    };
+
+    const editDocument = (doc) => {
+        setEditingDoc(doc);
+        setEditTitle(doc.title);
+        setEditDriveLink(doc.driveLink || "");
+    };
+
+    const saveDocument = async (e) => {
+        e.preventDefault();
+        if (!editingDoc) return;
+        try {
+            const res = await fetch(`${API}/api/documents/${editingDoc.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title: editTitle.trim(), driveLink: editDriveLink.trim() }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to update document");
+            setSubmissions(prev => prev.map(s => s.id === editingDoc.id ? { ...s, title: data.title, driveLink: data.driveLink } : s));
+            setEditingDoc(null);
+            showToast("Document updated.");
+        } catch (err) {
+            showToast(err.message, "error");
+        }
+    };
+
+    const deleteDocument = async (doc) => {
+        if (!window.confirm(`Delete document ${doc.id}?`)) return;
+        try {
+            const res = await fetch(`${API}/api/documents/${doc.id}`, { method: "DELETE" });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to delete document");
+            setSubmissions(prev => prev.filter(s => s.id !== doc.id));
+            showToast("Document deleted.");
         } catch (err) {
             showToast(err.message, "error");
         }
@@ -183,6 +225,7 @@ export default function AdviserDashboard({ user = { name: "Dr. Elena Reyes", ini
             sidebarIcons={sidebarIcons}
             activeSidebarIndex={activeSidebarIndex}
             onLogout={onLogout}
+            userProgram={user.program}
         >
             {view === "All Documents" ? (
                 <AllDocuments role="adviser" />
@@ -190,8 +233,10 @@ export default function AdviserDashboard({ user = { name: "Dr. Elena Reyes", ini
                 <AdviserApprovals
                     submissions={submissions}
                     onApprove={approve}
-                    onDisapprove={disapprove}
+                    onDisapprove={(id) => { const sub = submissions.find(s => s.id === id); setDisapproving(sub); }}
                     onSetMode={setMode}
+                    onEdit={editDocument}
+                    onDelete={deleteDocument}
                 />
             ) : view === "Workflow Guide" ? (
                 <WorkflowGuide />
@@ -276,7 +321,7 @@ export default function AdviserDashboard({ user = { name: "Dr. Elena Reyes", ini
                                         <StatusBadge status={sub.status} />
                                         <div className="flex gap-2">
                                             <button
-                                                onClick={() => disapprove(sub.id)}
+                                                onClick={() => setDisapproving(sub)}
                                                 className="flex items-center gap-1.5 rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
                                             >
                                                 <XCircleIcon size={14} /> Disapprove
@@ -299,6 +344,30 @@ export default function AdviserDashboard({ user = { name: "Dr. Elena Reyes", ini
                         )}
                     </div>
                 </>
+            )}
+
+            {disapproving && (
+                <DisapproveModal
+                    title={disapproving.title}
+                    onConfirm={(remarks) => disapprove(disapproving.id, remarks)}
+                    onCancel={() => setDisapproving(null)}
+                />
+            )}
+
+            {editingDoc && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                    <form onSubmit={saveDocument} className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+                        <h3 className="mb-4 text-sm font-semibold text-slate-800">Edit Document</h3>
+                        <div className="flex flex-col gap-3">
+                            <input className="w-full rounded-lg border border-slate-200 px-3.5 py-2 text-sm" value={editTitle} onChange={e => setEditTitle(e.target.value)} />
+                            <input className="w-full rounded-lg border border-slate-200 px-3.5 py-2 text-sm" value={editDriveLink} onChange={e => setEditDriveLink(e.target.value)} />
+                            <div className="flex justify-end gap-2">
+                                <button type="button" onClick={() => setEditingDoc(null)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600">Cancel</button>
+                                <button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Save</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
             )}
 
             {toast && (

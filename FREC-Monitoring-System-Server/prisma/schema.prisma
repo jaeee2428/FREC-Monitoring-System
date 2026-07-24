@@ -25,11 +25,23 @@ model UserAccount {
   program     String?  @db.VarChar(150)
   whitelisted Boolean  @default(true)
 
-  studentDocuments Document[]        @relation("StudentDocuments")
-  adviserDocuments Document[]        @relation("AdviserDocuments")
-  historyEntries   DocumentHistory[]
+  studentDocuments  Document[]        @relation("StudentDocuments")
+  adviserDocuments  Document[]        @relation("AdviserDocuments")
+  historyEntries    DocumentHistory[]
+  studentAdvisers   StudentAdviser[]  @relation("StudentAdviserStudent")
+  adviserStudents   StudentAdviser[]  @relation("StudentAdviserAdviser")
 
   @@map("USER_ACCOUNT")
+}
+
+model StudentAdviser {
+  student_id String
+  adviser_id String
+  student    UserAccount @relation("StudentAdviserStudent", fields: [student_id], references: [id])
+  adviser    UserAccount @relation("StudentAdviserAdviser", fields: [adviser_id], references: [id])
+
+  @@id([student_id, adviser_id])
+  @@map("STUDENT_ADVISER")
 }
 
 model Document {
@@ -45,6 +57,7 @@ model Document {
   updated_date   DateTime
   drive_link     String?        @db.Text
   remarks        String?        @db.Text
+  deleted_at     DateTime?
 
   history DocumentHistory[]
 

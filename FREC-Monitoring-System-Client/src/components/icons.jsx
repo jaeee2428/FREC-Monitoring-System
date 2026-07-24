@@ -95,3 +95,15 @@ export const EyeIcon = (props) => (
         <circle cx="12" cy="12" r="3" />
     </IconBase>
 );
+
+export const PencilIcon = (props) => (
+    <IconBase {...props}>
+        <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+    </IconBase>
+);
+
+export const TrashIcon = (props) => (
+    <IconBase {...props}>
+        <path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+    </IconBase>
+);

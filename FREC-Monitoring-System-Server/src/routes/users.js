@@ -4,12 +4,10 @@ const multer = require('multer');
 const { parse } = require('csv-parse/sync');
 const prisma = require('../lib/prisma');
 
-// Multer: store uploaded CSV in memory
 const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 5 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
-        // Only accept CSV files
         if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
             cb(null, true);
         } else {
@@ -18,25 +16,33 @@ const upload = multer({
     }
 });
 
-// Role label → id map (mirrors the ROLE seed)
 const ROLE_LABEL_TO_ID = {
     'student': 1,
     'adviser': 2,
     'advisor': 2,
     'program chair': 3,
     'dean': 4,
-    'reviewer': 5,
+    'frec': 5,
     'it admin': 6,
-    'frec': 7,
 };
 
 function roleToId(label = '') {
-    return ROLE_LABEL_TO_ID[label.trim().toLowerCase()] ?? 1; // default → Student
+    return ROLE_LABEL_TO_ID[label.trim().toLowerCase()] ?? 1;
+}
+
+async function generateUniqueId(email, maxLength = 10) {
+    const base = email.trim().toLowerCase();
+    for (let len = maxLength; len <= 32; len++) {
+        const shortId = 'U-' + Buffer.from(base).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, len).toUpperCase();
+        const exists = await prisma.userAccount.findUnique({ where: { id: shortId } });
+        if (!exists) return shortId;
+    }
+    const fallback = 'U-' + Buffer.from(base + Date.now()).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 10).toUpperCase();
+    return fallback;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/users
-// Returns every user account with their role label.
 // ─────────────────────────────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
     try {
@@ -63,9 +69,114 @@ router.get('/', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// GET /api/users/:id
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const user = await prisma.userAccount.findUnique({
+            where: { id },
+            include: {
+                role: true,
+                studentAdvisers: { include: { adviser: { select: { id: true, name: true } } } },
+                adviserStudents: { include: { student: { select: { id: true, name: true } } } },
+            },
+        });
+
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        res.status(200).json({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role.label,
+            role_id: user.role_id,
+            program: user.program,
+            whitelisted: user.whitelisted,
+            advisers: user.studentAdvisers?.map(a => ({ id: a.adviser.id, name: a.adviser.name })) || [],
+            students: user.adviserStudents?.map(s => ({ id: s.student.id, name: s.student.name })) || [],
+        });
+    } catch (err) {
+        console.error('GET /api/users/:id error:', err);
+        res.status(500).json({ error: 'Server error fetching user' });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PUT /api/users/:id
+// Body: { name?, email?, program? }
+// ─────────────────────────────────────────────────────────────────────────────
+router.put('/:id', async (req, res) => {
+    const { id } = req.params;
+    const { name, email, program } = req.body;
+
+    try {
+        const data = {};
+        if (name !== undefined) data.name = name;
+        if (email !== undefined) data.email = email;
+        if (program !== undefined) data.program = program;
+
+        const user = await prisma.userAccount.update({
+            where: { id },
+            data,
+            include: { role: true },
+        });
+
+        res.status(200).json({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role.label,
+            role_id: user.role_id,
+            program: user.program,
+            whitelisted: user.whitelisted,
+        });
+    } catch (err) {
+        if (err.code === 'P2025') return res.status(404).json({ error: 'User not found' });
+        console.error('PUT /api/users/:id error:', err);
+        res.status(500).json({ error: 'Server error updating user' });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DELETE /api/users/:id
+// ─────────────────────────────────────────────────────────────────────────────
+router.delete('/:id', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const user = await prisma.userAccount.findUnique({ where: { id } });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const ownedDocuments = await prisma.document.findMany({
+            where: { OR: [{ student_id: id }, { adviser_id: id }] },
+            select: { id: true },
+        });
+
+        if (ownedDocuments.length) {
+            await prisma.documentHistory.deleteMany({
+                where: { document_id: { in: ownedDocuments.map(doc => doc.id) } },
+            });
+        }
+
+        await prisma.studentAdviser.deleteMany({
+            where: { OR: [{ student_id: id }, { adviser_id: id }] },
+        });
+        await prisma.document.deleteMany({
+            where: { OR: [{ student_id: id }, { adviser_id: id }] },
+        });
+        await prisma.documentHistory.deleteMany({ where: { actor_id: id } });
+        await prisma.userAccount.delete({ where: { id } });
+
+        res.status(200).json({ message: 'User deleted', id });
+    } catch (err) {
+        console.error('DELETE /api/users/:id error:', err);
+        res.status(500).json({ error: 'Server error deleting user' });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // PUT /api/users/:id/whitelist
-// Toggles whitelisted status for a user.
-// Body: { whitelisted: boolean }
 // ─────────────────────────────────────────────────────────────────────────────
 router.put('/:id/whitelist', async (req, res) => {
     const { id } = req.params;
@@ -82,7 +193,7 @@ router.put('/:id/whitelist', async (req, res) => {
         });
 
         res.status(200).json({
-            message: `User whitelist status updated successfully`,
+            message: 'User whitelist status updated successfully',
             user: { id: user.id, name: user.name, email: user.email, whitelisted: user.whitelisted },
         });
     } catch (err) {
@@ -96,15 +207,13 @@ router.put('/:id/whitelist', async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PUT /api/users/:id/role
-// Updates role assignment for a user.
-// Body: { role_id: number }
 // ─────────────────────────────────────────────────────────────────────────────
 router.put('/:id/role', async (req, res) => {
     const { id } = req.params;
     const { role_id } = req.body;
 
-    if (!role_id || typeof role_id !== 'number') {
-        return res.status(400).json({ error: "'role_id' numeric field is required in body" });
+    if (![1, 2, 3, 4, 5, 6].includes(role_id)) {
+        return res.status(400).json({ error: "'role_id' must be a valid current role ID" });
     }
 
     try {
@@ -129,15 +238,9 @@ router.put('/:id/role', async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/users/import
-// Accepts a multipart CSV upload.
-// CSV columns (case-insensitive headers): name, email, role, program
-// All imported users are whitelisted by default.
-// Existing emails are updated (upsert); new ones are created.
-// Returns: { imported, skipped, users[] }
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/import', (req, res) => {
     upload.single('file')(req, res, async (err) => {
-        // Handle multer/busboy errors gracefully
         if (err) {
             console.error('Multer/busboy error:', err);
             if (err instanceof multer.MulterError) {
@@ -189,10 +292,9 @@ router.post('/import', (req, res) => {
             const role_id = roleToId(row.role || '');
             const program = (row.program || '').trim() || null;
 
-            // Generate a deterministic short ID from email
-            const shortId = 'U-' + Buffer.from(email).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 10).toUpperCase();
-
             try {
+                const shortId = await generateUniqueId(email);
+
                 const user = await prisma.userAccount.upsert({
                     where: { email },
                     update: { name, role_id, program, whitelisted: true },

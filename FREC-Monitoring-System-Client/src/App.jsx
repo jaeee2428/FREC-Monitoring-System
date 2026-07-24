@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-import { isAdviserRole, isStudentRole, isProgramChairRole, isDeanRole, isReviewerRole, isITAdminRole } from './data/accounts.js'
+import { isAdviserRole, isStudentRole, isProgramChairRole, isDeanRole, isFRECRole, isITAdminRole } from './data/accounts.js'
 import AdviserDashboard from './pages/adviser/dashboard.jsx'
 import StudentDashboard from './pages/student/dashboard.jsx'
 import ProgramChairDashboard from './pages/program-chair/program-chair-dashboard.jsx'
@@ -75,7 +75,7 @@ function App() {
     return <DeanDashboard user={session} onLogout={handleSignOut} view={view} setView={setView} />
   }
 
-  if (session && isReviewerRole(session.role)) {
+  if (session && isFRECRole(session.role)) {
     return <ReviewerDashboard user={session} onLogout={handleSignOut} view={view} setView={setView} />
   }
 

@@ -31,8 +31,7 @@ export default function AllDocumentsView({ role = null }) {
             setLoading(true);
             setError(null);
             try {
-                // IT Admin sees all docs; roles see their filtered set
-                const url = role ? `${API}/api/documents?role=${encodeURIComponent(role)}` : `${API}/api/documents`;
+                const url = `${API}/api/documents`;
                 const res = await fetch(url);
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || "Failed to fetch documents");
@@ -117,8 +116,8 @@ export default function AllDocumentsView({ role = null }) {
                                         </td>
                                     </tr>
                                 ) : (
-                                    filtered.map((doc, idx) => (
-                                        <tr key={doc.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/40">
+                    filtered.map((doc, idx) => (
+                        <tr key={doc.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/40">
                                             <td className="px-5 py-4 text-slate-500">{idx + 1}</td>
                                             <td className="px-5 py-4 font-mono text-xs text-slate-500">{doc.docId}</td>
                                             <td className="px-5 py-4 font-semibold text-slate-800">{doc.title}</td>

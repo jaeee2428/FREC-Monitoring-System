@@ -28,8 +28,13 @@ export default function StudentDashboard({
   const [driveLink, setDriveLink] = useState("");
   const [toast, setToast] = useState(null);
   const [toastType, setToastType] = useState("success");
+  const [advisers, setAdvisers] = useState([]);
+  const [selectedAdviserId, setSelectedAdviserId] = useState("");
+  const [editingDoc, setEditingDoc] = useState(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDriveLink, setEditDriveLink] = useState("");
 
-  const pendingCount = requests.filter(r => !["APPROVED", "COMPLETED", "DISAPPROVED"].includes(r.status)).length;
+  const pendingCount = requests.filter(r => !["APPROVED", "COMPLETED", "DISAPPROVED", "CANCELLED"].includes(r.status)).length;
   const approvedCount = requests.filter(r => ["APPROVED", "COMPLETED"].includes(r.status)).length;
   const disapprovedCount = requests.filter(r => r.status === "DISAPPROVED").length;
 
@@ -37,6 +42,31 @@ export default function StudentDashboard({
     setToast(message);
     setToastType(type);
     window.setTimeout(() => setToast(null), 3000);
+  };
+
+  // ── Fetch advisers and assigned adviser ────────────────────────────────────
+  const fetchAdvisers = async () => {
+    try {
+      const res = await fetch(`${API}/api/users`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to fetch users");
+      const ad = data.users.filter(u => u.role_id === 2);
+      setAdvisers(ad);
+
+      if (user?.id) {
+        const profRes = await fetch(`${API}/api/users/${encodeURIComponent(user.id)}`);
+        if (profRes.ok) {
+          const prof = await profRes.json();
+          if (prof.advisers?.length > 0) {
+            setSelectedAdviserId(prof.advisers[0].id);
+          } else if (ad.length > 0) {
+            setSelectedAdviserId(ad[0].id);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch advisers:", err);
+    }
   };
 
   // ── Fetch student's documents from DB ─────────────────────────────────────
@@ -67,9 +97,8 @@ export default function StudentDashboard({
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     fetchDocuments();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    fetchAdvisers();
   }, [user?.id]);
 
   // ── Submit new document ───────────────────────────────────────────────────
@@ -90,19 +119,23 @@ export default function StudentDashboard({
 
     setSubmitting(true);
     try {
+      const body = {
+        title: docTitle.trim(),
+        driveLink: driveLink.trim(),
+        studentId: user.id,
+      };
+      if (selectedAdviserId) {
+        body.adviserId = selectedAdviserId;
+      }
+
       const res = await fetch(`${API}/api/documents`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: docTitle.trim(),
-          driveLink: driveLink.trim(),
-          studentId: user.id,
-        }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Submission failed");
 
-      // Prepend new doc to the list
       setRequests(prev => [{
         id: data.id,
         title: data.title,
@@ -125,6 +158,51 @@ export default function StudentDashboard({
     }
   };
 
+  // ── Edit document ─────────────────────────────────────────────────────────
+  const handleEdit = async (req) => {
+    setEditingDoc(req);
+    setEditTitle(req.title);
+    setEditDriveLink(req.driveLink || "");
+  };
+
+  const handleEditSave = async (e) => {
+    e.preventDefault();
+    if (!editTitle.trim() || !editDriveLink.trim()) return;
+
+    try {
+      const res = await fetch(`${API}/api/documents/${editingDoc.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: editTitle.trim(), driveLink: editDriveLink.trim() }),
+      });
+      if (!res.ok) throw new Error("Failed to update document");
+
+      setRequests(prev => prev.map(r =>
+        r.id === editingDoc.id
+          ? { ...r, title: editTitle.trim(), driveLink: editDriveLink.trim() }
+          : r
+      ));
+      setEditingDoc(null);
+      showToast("Document updated.");
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  };
+
+  // ── Delete (cancel) document ──────────────────────────────────────────────
+  const handleDelete = async (req) => {
+    if (!window.confirm(`Cancel document "${req.id}"? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`${API}/api/documents/${req.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to cancel document");
+
+      setRequests(prev => prev.filter(r => r.id !== req.id));
+      showToast(`"${req.id}" cancelled.`);
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  };
+
   const sidebarIcons = [
     { icon: HomeIcon, label: "Dashboard", onClick: () => setView("Dashboard") },
     { icon: RotateIcon, label: "Workflow Guide", onClick: () => setView("Workflow Guide") },
@@ -144,12 +222,12 @@ export default function StudentDashboard({
       onLogout={onLogout}
       sidebarIcons={sidebarIcons}
       activeSidebarIndex={activeSidebarIndex}
+      userProgram={user.program}
     >
       {view === "Workflow Guide" ? (
         <WorkflowGuide />
       ) : (
         <>
-          {/* Hero */}
           <div className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-[#7a1f2b] to-[#4a1319] px-8 py-6 text-white">
             <h1 className="!m-0 !text-xl !font-bold !text-white">Welcome, {user.name}!</h1>
             <p className="mt-1 max-w-xl text-sm text-white/85">
@@ -161,7 +239,6 @@ export default function StudentDashboard({
             </div>
           </div>
 
-          {/* Stats */}
           <div className="mb-6 flex gap-4">
             <StatCard label="TOTAL SUBMITTED" value={requests.length} valueColor="text-slate-800" />
             <StatCard label="PENDING REVIEW" value={pendingCount} valueColor="text-[#7a1f2b]" />
@@ -169,7 +246,6 @@ export default function StudentDashboard({
             <StatCard label="DISAPPROVED" value={disapprovedCount} valueColor="text-red-600" />
           </div>
 
-          {/* Submit form */}
           <form onSubmit={handleSubmit} className="mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <h3 className="mb-3 text-sm font-semibold text-slate-800">Submit New Document</h3>
             <div className="flex flex-col gap-3">
@@ -186,6 +262,21 @@ export default function StudentDashboard({
                   required
                   className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 py-2 text-sm text-slate-700 outline-none transition-all focus:border-[#7a1f2b] focus:bg-white disabled:opacity-60"
                 />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-500">
+                  ADVISER
+                </label>
+                <select
+                  value={selectedAdviserId}
+                  onChange={e => setSelectedAdviserId(e.target.value)}
+                  disabled={submitting}
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 py-2 text-sm text-slate-700 outline-none transition-all focus:border-[#7a1f2b] focus:bg-white disabled:opacity-60"
+                >
+                  {advisers.map(a => (
+                    <option key={a.id} value={a.id}>{a.name} ({a.id})</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold text-slate-500">
@@ -215,7 +306,47 @@ export default function StudentDashboard({
             </div>
           </form>
 
-          {/* Submissions list */}
+          {/* Edit Modal */}
+          {editingDoc && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+              <form onSubmit={handleEditSave} className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+                <h3 className="mb-4 text-sm font-semibold text-slate-800">Edit Document</h3>
+                <p className="mb-4 text-xs text-slate-500">{editingDoc.id}</p>
+                <div className="flex flex-col gap-3">
+                  <input
+                    type="text"
+                    value={editTitle}
+                    onChange={e => setEditTitle(e.target.value)}
+                    required
+                    className="w-full rounded-lg border border-slate-200 px-3.5 py-2 text-sm"
+                  />
+                  <input
+                    type="url"
+                    value={editDriveLink}
+                    onChange={e => setEditDriveLink(e.target.value)}
+                    required
+                    className="w-full rounded-lg border border-slate-200 px-3.5 py-2 text-sm"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditingDoc(null)}
+                      className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          )}
+
           {loadingDocs ? (
             <div className="flex items-center justify-center py-12 text-sm text-slate-400">
               <SpinnerIcon size={16} className="mr-2" /> Loading your submissions…
@@ -226,12 +357,13 @@ export default function StudentDashboard({
               title="My Submissions"
               role="student"
               onDownload={req => showToast(`Downloading certificate for ${req.id}…`)}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
             />
           )}
         </>
       )}
 
-      {/* Toast */}
       {toast && (
         <div className={`fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-lg px-4 py-2.5 text-sm text-white shadow-lg ${toastType === "error" ? "bg-red-700" : "bg-slate-900"}`}>
           {toast}

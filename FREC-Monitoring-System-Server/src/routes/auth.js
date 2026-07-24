@@ -3,7 +3,6 @@ const router = express.Router();
 const { OAuth2Client } = require('google-auth-library');
 const jwt = require('jsonwebtoken');
 const prisma = require('../lib/prisma');
-const { users: mockUsers } = require('../data/mockData');
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -31,18 +30,16 @@ router.post('/google', async (req, res) => {
             return res.status(400).json({ error: "Token is required" });
         }
 
-        // For testing purposes, let's bypass Google verification temporarily
-        // and just use the mock users if token is "test_<email>"
+        // Dev bypass: token "dev_<email>" skips Google verification
         let payload;
-        if (token.startsWith('test_')) {
-            const testEmail = token.replace('test_', '');
+        if (token.startsWith('dev_')) {
+            const devEmail = token.replace('dev_', '');
             payload = {
-                sub: 'test_sub_' + testEmail,
-                email: testEmail,
-                name: 'Test User',
+                sub: 'dev_sub_' + devEmail,
+                email: devEmail,
+                name: 'Dev User',
             };
         } else {
-            // Real Google verification
             const ticket = await client.verifyIdToken({
                 idToken: token,
                 audience: process.env.GOOGLE_CLIENT_ID,
@@ -50,33 +47,14 @@ router.post('/google', async (req, res) => {
             payload = ticket.getPayload();
         }
 
-        const { email, name, sub: googleId } = payload;
+        const { email } = payload;
 
-        let user;
-        let roleLabel;
-
-        // Try to get user from Prisma first
-        if (prisma) {
-            user = await prisma.userAccount.findUnique({
-                where: { email },
-                include: { role: true }
-            });
-
-            if (user) {
-                roleLabel = user.role.label;
-            }
-        }
-
-        // If no Prisma or no user found, try mock data
-        if (!user) {
-            user = mockUsers.find(u => u.email === email);
-            if (user) {
-                roleLabel = user.role;
-            }
-        }
+        const user = await prisma.userAccount.findUnique({
+            where: { email },
+            include: { role: true }
+        });
 
         if (!user) {
-            // If user not found, return error
             return res.status(403).json({ error: "Account is not whitelisted to access the portal." });
         }
 
@@ -84,13 +62,12 @@ router.post('/google', async (req, res) => {
             return res.status(403).json({ error: "Account is not whitelisted to access the portal." });
         }
 
-        // Generate JWT
         const jwtToken = jwt.sign(
             {
                 id: user.id,
                 email: user.email,
                 name: user.name,
-                role: roleLabel,
+                role: user.role.label,
                 role_id: user.role_id,
                 program: user.program,
             },
@@ -104,7 +81,7 @@ router.post('/google', async (req, res) => {
                 id: user.id,
                 name: user.name,
                 email: user.email,
-                role: roleLabel,
+                role: user.role.label,
                 program: user.program,
             },
         });

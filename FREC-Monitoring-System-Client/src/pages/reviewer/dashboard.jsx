@@ -6,6 +6,7 @@ import AllDocuments from "../../components/AllDocuments.jsx";
 import WorkflowGuide from "../../components/WorkflowGuide.jsx";
 import ReviewerApprovals from "./approvals.jsx";
 import DriveLinkButton from "../../components/DriveLinkButton.jsx";
+import DisapproveModal from "../../components/DisapproveModal.jsx";
 import {
     InfoIcon,
     XCircleIcon,
@@ -18,6 +19,8 @@ import {
 import ModeBadge from "../../components/ModeBadge.jsx";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const FREC_REVIEW_STATUSES = ["FORWARDED-FREC", "DEAN ENDORSED", "FOR REVIEW"];
+const TERMINAL_STATUSES = ["COMPLETED", "DISAPPROVED", "CANCELLED"];
 
 const SpinnerIcon = ({ size = 16, ...props }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin" {...props}>
@@ -45,9 +48,14 @@ export default function ReviewerDashboard({ user = { name: "Prof. Ramon Dela Cru
     const [loading, setLoading] = useState(true);
     const [toast, setToast] = useState(null);
     const [toastType, setToastType] = useState("success");
+    const [disapproving, setDisapproving] = useState(null);
+    const [editingDoc, setEditingDoc] = useState(null);
+    const [editTitle, setEditTitle] = useState("");
+    const [editDriveLink, setEditDriveLink] = useState("");
 
-    const pendingCount = submissions.filter((s) => s.status === "DEAN ENDORSED").length;
-    const reviewCount = submissions.filter((s) => s.status === "FOR REVIEW").length;
+    const newCount = submissions.filter((s) => s.status === "SUBMITTED").length;
+    const pendingCount = submissions.filter((s) => s.status !== "SUBMITTED" && !FREC_REVIEW_STATUSES.includes(s.status) && !TERMINAL_STATUSES.includes(s.status)).length;
+    const reviewCount = submissions.filter((s) => FREC_REVIEW_STATUSES.includes(s.status)).length;
     const completedCount = submissions.filter((s) => s.status === "COMPLETED").length;
     const disapprovedCount = submissions.filter((s) => s.status === "DISAPPROVED").length;
 
@@ -60,7 +68,7 @@ export default function ReviewerDashboard({ user = { name: "Prof. Ramon Dela Cru
     const fetchSubmissions = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${API}/api/documents?role=reviewer`);
+            const res = await fetch(`${API}/api/documents?role=frec`);
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Failed to fetch documents");
             setSubmissions(data.documents.map(toSubmission));
@@ -85,7 +93,7 @@ export default function ReviewerDashboard({ user = { name: "Prof. Ramon Dela Cru
             const res = await fetch(`${API}/api/documents/${id}/approve`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ actorId: user.id, role: "reviewer" }),
+                body: JSON.stringify({ actorId: user.id, role: "frec" }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Approval failed");
@@ -94,29 +102,30 @@ export default function ReviewerDashboard({ user = { name: "Prof. Ramon Dela Cru
                 prev.map((s) => (s.id === id ? { ...s, status: data.nextStatus } : s))
             );
 
-            const message = sub.status === "DEAN ENDORSED"
+            const message = sub.status === "FORWARDED-FREC"
+                ? `"${sub.title}" forwarded to Program Chair for review.`
+                : sub.status === "DEAN ENDORSED"
                 ? `"${sub.title}" accepted for review. Certificate generation will follow.`
-                : `"${sub.title}" has received final FICS FREC confirmation and is now complete.`;
+                : `"${sub.title}" has received final FREC confirmation and is now complete.`;
             showToast(message);
         } catch (err) {
             showToast(err.message, "error");
         }
     };
 
-    const handleDisapprove = async (id) => {
-        const sub = submissions.find((s) => s.id === id);
-        const remarks = window.prompt(`Reason for disapproving "${sub?.title}"?`);
-        if (remarks === null) return;
+    const handleDisapprove = async (id, remarks) => {
+        setDisapproving(null);
 
         try {
             const res = await fetch(`${API}/api/documents/${id}/disapprove`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ actorId: user.id, remarks: remarks || "Disapproved by reviewer" }),
+                body: JSON.stringify({ actorId: user.id, remarks }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Disapproval failed");
 
+            const sub = submissions.find((s) => s.id === id);
             setSubmissions((prev) =>
                 prev.map((s) => (s.id === id ? { ...s, status: "DISAPPROVED" } : s))
             );
@@ -126,7 +135,45 @@ export default function ReviewerDashboard({ user = { name: "Prof. Ramon Dela Cru
         }
     };
 
-    const pendingList = submissions.filter((s) => s.status === "DEAN ENDORSED" || s.status === "FOR REVIEW");
+    const editDocument = (doc) => {
+        setEditingDoc(doc);
+        setEditTitle(doc.title);
+        setEditDriveLink(doc.driveLink || "");
+    };
+
+    const saveDocument = async (e) => {
+        e.preventDefault();
+        if (!editingDoc) return;
+        try {
+            const res = await fetch(`${API}/api/documents/${editingDoc.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title: editTitle.trim(), driveLink: editDriveLink.trim() }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to update document");
+            setSubmissions(prev => prev.map(s => s.id === editingDoc.id ? { ...s, title: data.title, driveLink: data.driveLink } : s));
+            setEditingDoc(null);
+            showToast("Document updated.");
+        } catch (err) {
+            showToast(err.message, "error");
+        }
+    };
+
+    const deleteDocument = async (doc) => {
+        if (!window.confirm(`Delete document ${doc.id}?`)) return;
+        try {
+            const res = await fetch(`${API}/api/documents/${doc.id}`, { method: "DELETE" });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to delete document");
+            setSubmissions(prev => prev.filter(s => s.id !== doc.id));
+            showToast("Document deleted.");
+        } catch (err) {
+            showToast(err.message, "error");
+        }
+    };
+
+    const pendingList = submissions.filter((s) => FREC_REVIEW_STATUSES.includes(s.status));
     const queueLabel = "My Queue";
 
     const sidebarIcons = [
@@ -149,15 +196,18 @@ export default function ReviewerDashboard({ user = { name: "Prof. Ramon Dela Cru
             sidebarIcons={sidebarIcons}
             activeSidebarIndex={activeSidebarIndex}
             onLogout={onLogout}
-            role="reviewer"
+            role="frec"
+            userProgram={user.program}
         >
             {view === "All Documents" ? (
-                <AllDocuments role="reviewer" />
+                <AllDocuments role="frec" />
             ) : view === queueLabel ? (
                 <ReviewerApprovals
                     submissions={submissions}
                     onApprove={handleApprove}
                     onDisapprove={handleDisapprove}
+                    onEdit={editDocument}
+                    onDelete={deleteDocument}
                 />
             ) : view === "Workflow Guide" ? (
                 <WorkflowGuide />
@@ -166,7 +216,7 @@ export default function ReviewerDashboard({ user = { name: "Prof. Ramon Dela Cru
                     <div className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-[#7a1f2b] to-[#4a1319] px-8 py-6 text-white">
                         <h1 className="!m-0 !text-xl !font-bold !text-white">Welcome, {user.name}!</h1>
                         <p className="mt-1 max-w-xl text-sm text-white/85">
-                            Review Dean-endorsed submissions, validate documentation, and give final FICS FREC confirmation to complete the Mode 3 workflow.
+                            Review routed submissions, validate documentation, and give final FREC confirmation to complete the Mode 3 workflow.
                         </p>
                         <div className="absolute right-8 top-1/2 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white/40 text-lg font-bold">
                             {user.initials}
@@ -174,6 +224,7 @@ export default function ReviewerDashboard({ user = { name: "Prof. Ramon Dela Cru
                     </div>
 
                     <div className="mb-6 flex gap-4">
+                        <StatCard label="NEW" value={newCount} valueColor="text-blue-600" />
                         <StatCard label="PENDING REVIEW" value={pendingCount} valueColor="text-[#7a1f2b]" />
                         <StatCard label="IN REVIEW" value={reviewCount} valueColor="text-amber-600" />
                         <StatCard label="COMPLETED" value={completedCount} valueColor="text-emerald-600" />
@@ -183,8 +234,8 @@ export default function ReviewerDashboard({ user = { name: "Prof. Ramon Dela Cru
                     <div className="mb-6 flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
                         <InfoIcon size={16} className="mt-0.5 shrink-0" />
                         <p>
-                            <span className="font-semibold">Reviewer Workflow:</span>
-                            {" "}Review Dean-endorsed submissions, accept them for certificate generation, then give final <span className="font-bold">FICS FREC confirmation</span> to mark them complete.
+                            <span className="font-semibold">FREC Workflow:</span>
+                            {" "}Review documents at the FREC stage and give final <span className="font-bold">FREC confirmation</span> when required to complete the workflow.
                         </p>
                     </div>
 
@@ -226,12 +277,19 @@ export default function ReviewerDashboard({ user = { name: "Prof. Ramon Dela Cru
                                         <StatusBadge status={sub.status} />
                                         <div className="flex gap-2">
                                             <button
-                                                onClick={() => handleDisapprove(sub.id)}
+                                                onClick={() => setDisapproving(sub)}
                                                 className="flex items-center gap-1.5 rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
                                             >
                                                 <XCircleIcon size={14} /> Disapprove
                                             </button>
-                                            {sub.status === "DEAN ENDORSED" ? (
+                                            {sub.status === "FORWARDED-FREC" ? (
+                                                <button
+                                                    onClick={() => handleApprove(sub.id)}
+                                                    className="flex items-center gap-1.5 rounded-md bg-[#7a1f2b] hover:bg-[#5a121d] text-white px-3 py-1.5 text-xs font-semibold transition-colors shadow-sm"
+                                                >
+                                                    <ArrowRightCircleIcon size={14} /> Forward to Chair
+                                                </button>
+                                            ) : sub.status === "DEAN ENDORSED" ? (
                                                 <button
                                                     onClick={() => handleApprove(sub.id)}
                                                     className="flex items-center gap-1.5 rounded-md bg-[#7a1f2b] hover:bg-[#5a121d] text-white px-3 py-1.5 text-xs font-semibold transition-colors shadow-sm"
@@ -253,6 +311,30 @@ export default function ReviewerDashboard({ user = { name: "Prof. Ramon Dela Cru
                         )}
                     </div>
                 </>
+            )}
+
+            {disapproving && (
+                <DisapproveModal
+                    title={disapproving.title}
+                    onConfirm={(remarks) => handleDisapprove(disapproving.id, remarks)}
+                    onCancel={() => setDisapproving(null)}
+                />
+            )}
+
+            {editingDoc && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                    <form onSubmit={saveDocument} className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+                        <h3 className="mb-4 text-sm font-semibold text-slate-800">Edit Document</h3>
+                        <div className="flex flex-col gap-3">
+                            <input className="w-full rounded-lg border border-slate-200 px-3.5 py-2 text-sm" value={editTitle} onChange={e => setEditTitle(e.target.value)} />
+                            <input className="w-full rounded-lg border border-slate-200 px-3.5 py-2 text-sm" value={editDriveLink} onChange={e => setEditDriveLink(e.target.value)} />
+                            <div className="flex justify-end gap-2">
+                                <button type="button" onClick={() => setEditingDoc(null)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600">Cancel</button>
+                                <button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Save</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
             )}
 
             {toast && (

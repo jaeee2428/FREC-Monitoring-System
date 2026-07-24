@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
+const { protect } = require('./middleware/auth');
+
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const documentRoutes = require('./routes/documents');
@@ -18,20 +20,12 @@ app.get('/api/health', (req, res) => {
 });
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
-// Auth routes    → POST /api/auth/google
+// Auth routes    → POST /api/auth/google (public)
 app.use('/api/auth', authRoutes);
 
-// User routes    → GET  /api/users
-//               → PUT  /api/users/:id/whitelist
-app.use('/api/users', userRoutes);
-
-// Document routes → POST /api/documents
-//                → GET  /api/documents
-//                → GET  /api/documents/:id
-//                → PUT  /api/documents/:id/mode
-//                → PUT  /api/documents/:id/approve
-//                → PUT  /api/documents/:id/disapprove
-app.use('/api/documents', documentRoutes);
+// Protected routes
+app.use('/api/users', protect, userRoutes);
+app.use('/api/documents', protect, documentRoutes);
 
 // ─── 404 Catch-All ────────────────────────────────────────────────────────────
 app.use((req, res) => {
