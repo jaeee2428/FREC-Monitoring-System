@@ -4,11 +4,13 @@ import { StatCard } from "../../components/StatCard.jsx";
 import {
     FileTextIcon, HomeIcon, RotateIcon,
     CheckCircleIcon, XCircleIcon, InfoIcon,
+    PencilIcon, TrashIcon,
 } from "../../components/icons.jsx";
 import WorkflowGuide from "../../components/WorkflowGuide.jsx";
 import { ROLE_NAMES } from "../../data/accounts.js";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const ROLE_IDS = Object.keys(ROLE_NAMES).map(Number);
 
 const SearchIcon = ({ size = 16, ...props }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -43,6 +45,11 @@ export default function ITAdminDashboard({
     const [uploading, setUploading] = useState(false);
     const [editRole, setEditRole] = useState({});
     const [savingRole, setSavingRole] = useState({});
+    const [editingUser, setEditingUser] = useState(null);
+    const [editName, setEditName] = useState("");
+    const [editEmail, setEditEmail] = useState("");
+    const [editProgram, setEditProgram] = useState("");
+    const [csvPreview, setCsvPreview] = useState(null);
     const fileInputRef = useRef(null);
 
     // ── Derived counts ────────────────────────────────────────────────────────
@@ -128,6 +135,10 @@ export default function ITAdminDashboard({
             ));
             setEditRole(prev => { const n = { ...prev }; delete n[email]; return n; });
             showToast(`Role updated for ${email}.`);
+
+            if (user?.id === userId && newRoleId !== 6) {
+                window.setTimeout(() => onLogout(), 800);
+            }
         } catch (err) {
             showToast(err.message, "error");
         } finally {
@@ -136,11 +147,6 @@ export default function ITAdminDashboard({
     };
 
     // ── CSV upload ────────────────────────────────────────────────────────────
-    const handleFileChange = (e) => {
-        const f = e.target.files?.[0];
-        if (f) setCsvFile(f);
-    };
-
     const handleCsvUpload = async () => {
         if (!csvFile) {
             showToast("Please choose a CSV file first.", "error");
@@ -168,6 +174,65 @@ export default function ITAdminDashboard({
             showToast(err.message, "error");
         } finally {
             setUploading(false);
+        }
+    };
+
+    // ── Edit user ────────────────────────────────────────────────────────────
+    const handleEditUser = (u) => {
+        setEditingUser(u);
+        setEditName(u.name);
+        setEditEmail(u.email);
+        setEditProgram(u.program || "");
+    };
+
+    const handleSaveUser = async (e) => {
+        e.preventDefault();
+        if (!editName.trim() || !editEmail.trim()) return;
+        try {
+            const res = await fetch(`${API}/api/users/${editingUser.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: editName.trim(), email: editEmail.trim(), program: editProgram.trim() || null }),
+            });
+            if (!res.ok) throw new Error("Failed to update user");
+            setUsersList(prev => prev.map(u =>
+                u.id === editingUser.id
+                    ? { ...u, name: editName.trim(), email: editEmail.trim(), program: editProgram.trim() || null }
+                    : u
+            ));
+            setEditingUser(null);
+            showToast("User updated.");
+        } catch (err) {
+            showToast(err.message, "error");
+        }
+    };
+
+    // ── Delete user ──────────────────────────────────────────────────────────
+    const handleDeleteUser = async (userId, name) => {
+        if (!window.confirm(`Delete user "${name}" (${userId})? This cannot be undone.`)) return;
+        try {
+            const res = await fetch(`${API}/api/users/${userId}`, { method: "DELETE" });
+            if (!res.ok) throw new Error("Failed to delete user");
+            setUsersList(prev => prev.filter(u => u.id !== userId));
+            showToast(`"${name}" deleted.`);
+        } catch (err) {
+            showToast(err.message, "error");
+        }
+    };
+
+    // ── CSV preview ──────────────────────────────────────────────────────────
+    const handleFileChangeWithPreview = (e) => {
+        const f = e.target.files?.[0];
+        if (f) {
+            setCsvFile(f);
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const text = ev.target.result;
+                const lines = text.split("\n").filter(l => l.trim());
+                const previewRows = lines.slice(0, 6);
+                setCsvPreview(previewRows);
+            };
+            reader.readAsText(f.slice(0, 4096));
         }
     };
 
@@ -199,6 +264,7 @@ export default function ITAdminDashboard({
             activeSidebarIndex={activeSidebarIndex}
             onLogout={onLogout}
             role="it-admin"
+            userProgram={user.program}
         >
             {view === "Workflow Guide" ? (
                 <WorkflowGuide />
@@ -253,13 +319,13 @@ export default function ITAdminDashboard({
                                         </button>
                                     )}
                                 </div>
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept=".csv,text/csv"
-                                    className="hidden"
-                                    onChange={handleFileChange}
-                                />
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept=".csv,text/csv"
+                                        className="hidden"
+                                        onChange={handleFileChangeWithPreview}
+                                    />
                             </label>
                             <button
                                 onClick={handleCsvUpload}
@@ -270,6 +336,29 @@ export default function ITAdminDashboard({
                             </button>
                         </div>
                     </div>
+
+                    {/* CSV Preview */}
+                    {csvPreview && (
+                        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                            <h3 className="mb-2 text-sm font-semibold text-slate-800">CSV Preview</h3>
+                            <div className="overflow-x-auto rounded border border-slate-100">
+                                <table className="w-full text-left text-xs">
+                                    <tbody>
+                                        {csvPreview.map((line, i) => (
+                                            <tr key={i} className={i === 0 ? "bg-slate-50 font-semibold text-slate-600" : "text-slate-700 border-t border-slate-50"}>
+                                                {line.split(",").map((cell, j) => (
+                                                    <td key={j} className="px-3 py-1.5 whitespace-nowrap">{cell.trim()}</td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {csvPreview.length >= 6 && (
+                                <p className="mt-2 text-[11px] text-slate-400">Showing first 5 data rows.</p>
+                            )}
+                        </div>
+                    )}
 
                     {/* Users table */}
                     <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -351,7 +440,7 @@ export default function ITAdminDashboard({
                                                             onChange={e => setEditRole(prev => ({ ...prev, [account.email]: parseInt(e.target.value) }))}
                                                             className="cursor-pointer rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-700 outline-none hover:border-slate-300"
                                                         >
-                                                            {[1, 2, 3, 4, 5, 6, 7].map(id => (
+                                                            {ROLE_IDS.map(id => (
                                                                 <option key={id} value={id}>{ROLE_NAMES[id]}</option>
                                                             ))}
                                                         </select>
@@ -370,13 +459,29 @@ export default function ITAdminDashboard({
                                                         </button>
                                                     </td>
                                                     <td className="px-5 py-3 text-right">
-                                                        <button
-                                                            disabled={!isDirty || isSaving}
-                                                            onClick={() => handleSaveRole(account.id, account.email)}
-                                                            className="inline-flex items-center gap-1.5 rounded bg-[#7a1f2b] px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-[#5a121d] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
-                                                        >
-                                                            {isSaving ? <><SpinnerIcon size={12} /> Saving…</> : "Save Role"}
-                                                        </button>
+                                                        <div className="flex items-center justify-end gap-1.5">
+                                                            <button
+                                                                disabled={!isDirty || isSaving}
+                                                                onClick={() => handleSaveRole(account.id, account.email)}
+                                                                className="inline-flex items-center gap-1.5 rounded bg-[#7a1f2b] px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-[#5a121d] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+                                                            >
+                                                                {isSaving ? <><SpinnerIcon size={12} /> Saving…</> : "Save Role"}
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleEditUser(account)}
+                                                                title="Edit user"
+                                                                className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white transition-colors hover:bg-blue-700 cursor-pointer"
+                                                            >
+                                                                <PencilIcon size={13} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteUser(account.id, account.name)}
+                                                                title="Delete user"
+                                                                className="flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-white transition-colors hover:bg-red-700 cursor-pointer"
+                                                            >
+                                                                <TrashIcon size={13} />
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             );
@@ -386,6 +491,56 @@ export default function ITAdminDashboard({
                             </table>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {/* Edit User Modal */}
+            {editingUser && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                    <form onSubmit={handleSaveUser} className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+                        <h3 className="mb-4 text-sm font-semibold text-slate-800">Edit User</h3>
+                        <p className="mb-4 text-xs text-slate-500">{editingUser.id}</p>
+                        <div className="flex flex-col gap-3">
+                            <input
+                                type="text"
+                                value={editName}
+                                onChange={e => setEditName(e.target.value)}
+                                required
+                                placeholder="Name"
+                                className="w-full rounded-lg border border-slate-200 px-3.5 py-2 text-sm"
+                            />
+                            <input
+                                type="email"
+                                value={editEmail}
+                                onChange={e => setEditEmail(e.target.value)}
+                                required
+                                placeholder="Email"
+                                className="w-full rounded-lg border border-slate-200 px-3.5 py-2 text-sm"
+                            />
+                            <input
+                                type="text"
+                                value={editProgram}
+                                onChange={e => setEditProgram(e.target.value)}
+                                placeholder="Program"
+                                className="w-full rounded-lg border border-slate-200 px-3.5 py-2 text-sm"
+                            />
+                            <div className="flex justify-end gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingUser(null)}
+                                    className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 cursor-pointer"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 cursor-pointer"
+                                >
+                                    Save
+                                </button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             )}
 

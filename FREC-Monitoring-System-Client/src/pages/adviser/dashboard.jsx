@@ -4,17 +4,18 @@ import { StatCard } from "../../components/StatCard.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import AllDocuments from "../../components/AllDocuments.jsx";
 import WorkflowGuide from "../../components/WorkflowGuide.jsx";
-import AdviserApprovals from "./approvals.jsx";
 import DriveLinkButton from "../../components/DriveLinkButton.jsx";
+import DisapproveModal from "../../components/DisapproveModal.jsx";
 import {
-    InfoIcon,
+    CheckCircleIcon,
     XCircleIcon,
     ArrowRightCircleIcon,
+    InfoIcon,
     HomeIcon,
     FileTextIcon,
-    CheckCircleIcon,
     RotateIcon,
 } from "../../components/icons.jsx";
+import AdviserApprovals from "./approvals.jsx";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -59,6 +60,7 @@ export default function AdviserDashboard({ user = { name: "Dr. Elena Reyes", ini
     const [loading, setLoading] = useState(true);
     const [toast, setToast] = useState(null);
     const [toastType, setToastType] = useState("success");
+    const [disapproving, setDisapproving] = useState(null);
 
     const pendingCount = submissions.filter((s) => s.status === "SUBMITTED").length;
     const forwardedCount = submissions.filter((s) => s.status === "FORWARDED-FREC").length;
@@ -138,20 +140,19 @@ export default function AdviserDashboard({ user = { name: "Dr. Elena Reyes", ini
     };
 
     // ── Disapprove ─────────────────────────────────────────────────────────
-    const disapprove = async (id) => {
-        const sub = submissions.find((s) => s.id === id);
-        const remarks = window.prompt(`Reason for disapproving "${sub?.title}"?`);
-        if (remarks === null) return; // cancelled
+    const disapprove = async (id, remarks) => {
+        setDisapproving(null);
 
         try {
             const res = await fetch(`${API}/api/documents/${id}/disapprove`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ actorId: user.id, remarks: remarks || "Disapproved by adviser" }),
+                body: JSON.stringify({ actorId: user.id, remarks }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Disapproval failed");
 
+            const sub = submissions.find((s) => s.id === id);
             setSubmissions((prev) =>
                 prev.map((s) => (s.id === id ? { ...s, status: "DISAPPROVED" } : s))
             );
@@ -183,6 +184,7 @@ export default function AdviserDashboard({ user = { name: "Dr. Elena Reyes", ini
             sidebarIcons={sidebarIcons}
             activeSidebarIndex={activeSidebarIndex}
             onLogout={onLogout}
+            userProgram={user.program}
         >
             {view === "All Documents" ? (
                 <AllDocuments role="adviser" />
@@ -190,7 +192,7 @@ export default function AdviserDashboard({ user = { name: "Dr. Elena Reyes", ini
                 <AdviserApprovals
                     submissions={submissions}
                     onApprove={approve}
-                    onDisapprove={disapprove}
+                    onDisapprove={(id) => { const sub = submissions.find(s => s.id === id); setDisapproving(sub); }}
                     onSetMode={setMode}
                 />
             ) : view === "Workflow Guide" ? (
@@ -276,7 +278,7 @@ export default function AdviserDashboard({ user = { name: "Dr. Elena Reyes", ini
                                         <StatusBadge status={sub.status} />
                                         <div className="flex gap-2">
                                             <button
-                                                onClick={() => disapprove(sub.id)}
+                                                onClick={() => setDisapproving(sub)}
                                                 className="flex items-center gap-1.5 rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
                                             >
                                                 <XCircleIcon size={14} /> Disapprove
@@ -299,6 +301,14 @@ export default function AdviserDashboard({ user = { name: "Dr. Elena Reyes", ini
                         )}
                     </div>
                 </>
+            )}
+
+            {disapproving && (
+                <DisapproveModal
+                    title={disapproving.title}
+                    onConfirm={(remarks) => disapprove(disapproving.id, remarks)}
+                    onCancel={() => setDisapproving(null)}
+                />
             )}
 
             {toast && (

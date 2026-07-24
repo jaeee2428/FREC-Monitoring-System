@@ -2,11 +2,10 @@ import { useState, useEffect } from "react";
 import DashboardLayout from "../../layouts/DashboardLayout.jsx";
 import { StatCard } from "../../components/StatCard.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
-import ModeBadge from "../../components/ModeBadge.jsx";
 import AllDocuments from "../../components/AllDocuments.jsx";
 import WorkflowGuide from "../../components/WorkflowGuide.jsx";
-import DeanApprovals from "./approvals.jsx";
 import DriveLinkButton from "../../components/DriveLinkButton.jsx";
+import DisapproveModal from "../../components/DisapproveModal.jsx";
 import {
     InfoIcon,
     XCircleIcon,
@@ -16,6 +15,8 @@ import {
     FileTextIcon,
     RotateIcon,
 } from "../../components/icons.jsx";
+import ModeBadge from "../../components/ModeBadge.jsx";
+import DeanApprovals from "./approvals.jsx";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -45,6 +46,7 @@ export default function DeanDashboard({ user = { name: "Dr. Amalia Cruz", initia
     const [loading, setLoading] = useState(true);
     const [toast, setToast] = useState(null);
     const [toastType, setToastType] = useState("success");
+    const [disapproving, setDisapproving] = useState(null);
 
     const pendingCount = submissions.filter((s) => s.status === "FORWARDED-DEAN").length;
     const endorsedCount = submissions.filter((s) => s.status === "DEAN ENDORSED").length;
@@ -96,27 +98,26 @@ export default function DeanDashboard({ user = { name: "Dr. Amalia Cruz", initia
 
             const message = sub.mode === 2
                 ? `"${sub.title}" approved — certification complete (Mode 2).`
-                : `Endorsement letter issued for "${sub.title}" — forwarded to Reviewer (Mode 3).`;
+                : `Endorsement letter issued for "${sub.title}" — forwarded to FREC (Mode 3).`;
             showToast(message);
         } catch (err) {
             showToast(err.message, "error");
         }
     };
 
-    const handleDisapprove = async (id) => {
-        const sub = submissions.find((s) => s.id === id);
-        const remarks = window.prompt(`Reason for disapproving "${sub?.title}"?`);
-        if (remarks === null) return;
+    const handleDisapprove = async (id, remarks) => {
+        setDisapproving(null);
 
         try {
             const res = await fetch(`${API}/api/documents/${id}/disapprove`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ actorId: user.id, remarks: remarks || "Disapproved by dean" }),
+                body: JSON.stringify({ actorId: user.id, remarks }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Disapproval failed");
 
+            const sub = submissions.find((s) => s.id === id);
             setSubmissions((prev) =>
                 prev.map((s) => (s.id === id ? { ...s, status: "DISAPPROVED" } : s))
             );
@@ -150,6 +151,7 @@ export default function DeanDashboard({ user = { name: "Dr. Amalia Cruz", initia
             activeSidebarIndex={activeSidebarIndex}
             onLogout={onLogout}
             role="dean"
+            userProgram={user.program}
         >
             {view === "All Documents" ? (
                 <AllDocuments role="dean" />
@@ -166,7 +168,7 @@ export default function DeanDashboard({ user = { name: "Dr. Amalia Cruz", initia
                     <div className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-[#7a1f2b] to-[#4a1319] px-8 py-6 text-white">
                         <h1 className="!m-0 !text-xl !font-bold !text-white">Welcome, {user.name}!</h1>
                         <p className="mt-1 max-w-xl text-sm text-white/85">
-                            Review documents forwarded from the Program Chair. Approve Mode 2 submissions to complete the certification, or issue an endorsement letter for Mode 3 onward to the Reviewer.
+                            Review documents forwarded from the Program Chair. Approve Mode 2 submissions to complete the certification, or issue an endorsement letter for Mode 3 onward to FREC.
                         </p>
                         <div className="absolute right-8 top-1/2 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white/40 text-lg font-bold">
                             {user.initials}
@@ -184,7 +186,7 @@ export default function DeanDashboard({ user = { name: "Dr. Amalia Cruz", initia
                         <InfoIcon size={16} className="mt-0.5 shrink-0" />
                         <p>
                             <span className="font-semibold">Dean Review Rules:</span>
-                            {" "}Approving a <span className="font-bold">Mode 2</span> submission completes the certification immediately. Approving a <span className="font-bold">Mode 3</span> submission issues an endorsement letter and forwards it to the Reviewer.
+                            {" "}Approving a <span className="font-bold">Mode 2</span> submission completes the certification immediately. Approving a <span className="font-bold">Mode 3</span> submission issues an endorsement letter and forwards it to FREC.
                         </p>
                     </div>
 
@@ -226,7 +228,7 @@ export default function DeanDashboard({ user = { name: "Dr. Amalia Cruz", initia
                                         <StatusBadge status={sub.status} />
                                         <div className="flex gap-2">
                                             <button
-                                                onClick={() => handleDisapprove(sub.id)}
+                                                onClick={() => setDisapproving(sub)}
                                                 className="flex items-center gap-1.5 rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
                                             >
                                                 <XCircleIcon size={14} /> Disapprove
@@ -253,6 +255,14 @@ export default function DeanDashboard({ user = { name: "Dr. Amalia Cruz", initia
                         )}
                     </div>
                 </>
+            )}
+
+            {disapproving && (
+                <DisapproveModal
+                    title={disapproving.title}
+                    onConfirm={(remarks) => handleDisapprove(disapproving.id, remarks)}
+                    onCancel={() => setDisapproving(null)}
+                />
             )}
 
             {toast && (

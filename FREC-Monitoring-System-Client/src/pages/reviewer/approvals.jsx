@@ -5,15 +5,20 @@ import { XCircleIcon, ArrowRightCircleIcon, CheckCircleIcon } from "../../compon
 import ModeBadge from "../../components/ModeBadge.jsx";
 import DriveLinkButton from "../../components/DriveLinkButton.jsx";
 
+const FREC_REVIEW_STATUSES = ["FORWARDED-FREC", "DEAN ENDORSED", "FOR REVIEW"];
+const TERMINAL_STATUSES = ["COMPLETED", "DISAPPROVED", "CANCELLED"];
+
 export default function ReviewerApprovals({ submissions, onApprove, onDisapprove }) {
     const [filter, setFilter] = useState("All");
 
-    const pendingList = submissions.filter((s) => s.status === "DEAN ENDORSED");
-    const reviewList = submissions.filter((s) => s.status === "FOR REVIEW");
+    const newList = submissions.filter((s) => s.status === "SUBMITTED");
+    const pendingList = submissions.filter((s) => s.status !== "SUBMITTED" && !FREC_REVIEW_STATUSES.includes(s.status) && !TERMINAL_STATUSES.includes(s.status));
+    const reviewList = submissions.filter((s) => FREC_REVIEW_STATUSES.includes(s.status));
     const completedList = submissions.filter((s) => s.status === "COMPLETED");
     const disapprovedList = submissions.filter((s) => s.status === "DISAPPROVED");
 
     const getFiltered = () => {
+        if (filter === "New") return newList;
         if (filter === "Pending") return pendingList;
         if (filter === "For Review") return reviewList;
         if (filter === "Completed") return completedList;
@@ -26,6 +31,7 @@ export default function ReviewerApprovals({ submissions, onApprove, onDisapprove
     return (
         <div className="space-y-6">
             <div className="flex gap-4">
+                <StatCard label="NEW" value={newList.length} valueColor="text-blue-600" />
                 <StatCard label="PENDING REVIEW" value={pendingList.length} valueColor="text-[#7a1f2b]" />
                 <StatCard label="IN REVIEW" value={reviewList.length} valueColor="text-amber-600" />
                 <StatCard label="COMPLETED" value={completedList.length} valueColor="text-emerald-600" />
@@ -34,7 +40,7 @@ export default function ReviewerApprovals({ submissions, onApprove, onDisapprove
 
             <div className="flex items-center justify-between">
                 <div className="flex gap-2">
-                    {["All", "Pending", "For Review", "Completed", "Disapproved"].map((tab) => (
+                    {["All", "New", "Pending", "For Review", "Completed", "Disapproved"].map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setFilter(tab)}
@@ -61,9 +67,10 @@ export default function ReviewerApprovals({ submissions, onApprove, onDisapprove
                     </div>
                 ) : (
                     filtered.map((sub, idx) => {
-                        const isPending = sub.status === "DEAN ENDORSED";
-                        const isInReview = sub.status === "FOR REVIEW";
-                        const showActions = isPending || isInReview;
+                        const isAtFrec = sub.status === "FORWARDED-FREC";
+                        const isEndorsed = sub.status === "DEAN ENDORSED";
+                        const isFinalReview = sub.status === "FOR REVIEW";
+                        const showActions = isAtFrec || isEndorsed || isFinalReview;
 
                         return (
                             <div key={sub.id} className="flex items-center justify-between px-5 py-5 border-b border-slate-50 last:border-0">
@@ -96,7 +103,14 @@ export default function ReviewerApprovals({ submissions, onApprove, onDisapprove
                                             >
                                                 <XCircleIcon size={14} /> Disapprove
                                             </button>
-                                            {isPending ? (
+                                            {isAtFrec ? (
+                                                <button
+                                                    onClick={() => onApprove(sub.id)}
+                                                    className="flex items-center gap-1.5 rounded-md bg-[#7a1f2b] hover:bg-[#5a121d] text-white px-3 py-1.5 text-xs font-semibold transition-colors shadow-sm"
+                                                >
+                                                    <ArrowRightCircleIcon size={14} /> Forward to Chair
+                                                </button>
+                                            ) : isEndorsed ? (
                                                 <button
                                                     onClick={() => onApprove(sub.id)}
                                                     className="flex items-center gap-1.5 rounded-md bg-[#7a1f2b] hover:bg-[#5a121d] text-white px-3 py-1.5 text-xs font-semibold transition-colors shadow-sm"
