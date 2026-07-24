@@ -1,7 +1,7 @@
 import { useState } from "react";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import { StatCard } from "../../components/StatCard.jsx";
-import { XCircleIcon, ArrowRightCircleIcon, CheckCircleIcon } from "../../components/icons.jsx";
+import { XCircleIcon, ArrowRightCircleIcon, CheckCircleIcon, PencilIcon, TrashIcon } from "../../components/icons.jsx";
 import DriveLinkButton from "../../components/DriveLinkButton.jsx";
 
 const FILTERS = ["All", "Pending", "Forwarded to FREC", "Disapproved"];
@@ -28,7 +28,7 @@ function matchesFilter(sub, filter) {
     return true;
 }
 
-export default function AdviserApprovalsView({ submissions, onApprove, onDisapprove, onSetMode }) {
+export default function AdviserApprovalsView({ submissions, onApprove, onDisapprove, onSetMode, onEdit, onDelete }) {
     const [filter, setFilter] = useState("All");
 
     const pendingCount = submissions.filter((s) => s.status === "SUBMITTED").length;
@@ -102,6 +102,22 @@ export default function AdviserApprovalsView({ submissions, onApprove, onDisappr
                                                 <DriveLinkButton driveLink={sub.driveLink} />
                                             </div>
                                         )}
+                                        <div className="mt-3 flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => onEdit?.(sub)}
+                                                className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
+                                            >
+                                                <PencilIcon size={12} /> Edit
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => onDelete?.(sub)}
+                                                className="inline-flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700"
+                                            >
+                                                <TrashIcon size={12} /> Delete
+                                            </button>
+                                        </div>
 
                                         {/* Mode selector */}
                                         {isPending && (

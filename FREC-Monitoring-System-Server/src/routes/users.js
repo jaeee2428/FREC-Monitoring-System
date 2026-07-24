@@ -148,13 +148,24 @@ router.delete('/:id', async (req, res) => {
         const user = await prisma.userAccount.findUnique({ where: { id } });
         if (!user) return res.status(404).json({ error: 'User not found' });
 
+        const ownedDocuments = await prisma.document.findMany({
+            where: { OR: [{ student_id: id }, { adviser_id: id }] },
+            select: { id: true },
+        });
+
+        if (ownedDocuments.length) {
+            await prisma.documentHistory.deleteMany({
+                where: { document_id: { in: ownedDocuments.map(doc => doc.id) } },
+            });
+        }
+
         await prisma.studentAdviser.deleteMany({
             where: { OR: [{ student_id: id }, { adviser_id: id }] },
         });
-        await prisma.documentHistory.deleteMany({ where: { actor_id: id } });
         await prisma.document.deleteMany({
             where: { OR: [{ student_id: id }, { adviser_id: id }] },
         });
+        await prisma.documentHistory.deleteMany({ where: { actor_id: id } });
         await prisma.userAccount.delete({ where: { id } });
 
         res.status(200).json({ message: 'User deleted', id });

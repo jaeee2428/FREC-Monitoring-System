@@ -50,6 +50,14 @@ export default function ITAdminDashboard({
     const [editEmail, setEditEmail] = useState("");
     const [editProgram, setEditProgram] = useState("");
     const [csvPreview, setCsvPreview] = useState(null);
+    const [documentsList, setDocumentsList] = useState([]);
+    const [documentsLoading, setDocumentsLoading] = useState(true);
+    const [documentSearch, setDocumentSearch] = useState("");
+    const [editingDocument, setEditingDocument] = useState(null);
+    const [editDocumentTitle, setEditDocumentTitle] = useState("");
+    const [editDocumentDriveLink, setEditDocumentDriveLink] = useState("");
+    const [savingDocument, setSavingDocument] = useState(false);
+    const [deletingDocument, setDeletingDocument] = useState({});
     const fileInputRef = useRef(null);
 
     // ── Derived counts ────────────────────────────────────────────────────────
@@ -87,11 +95,32 @@ export default function ITAdminDashboard({
         }
     };
 
+    const fetchDocuments = async () => {
+        setDocumentsLoading(true);
+        try {
+            const res = await fetch(`${API}/api/documents`);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to fetch documents");
+            setDocumentsList(data.documents);
+        } catch (err) {
+            showToast(err.message, "error");
+        } finally {
+            setDocumentsLoading(false);
+        }
+    };
+
     useEffect(() => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
         fetchUsers();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    useEffect(() => {
+        if (view === "Documents") {
+            fetchDocuments();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [view]);
 
     // ── Toggle whitelist ──────────────────────────────────────────────────────
     const handleToggleWhitelist = async (userId, currentState, name) => {
@@ -204,6 +233,50 @@ export default function ITAdminDashboard({
             showToast("User updated.");
         } catch (err) {
             showToast(err.message, "error");
+        }
+    };
+
+    const handleEditDocument = (doc) => {
+        setEditingDocument(doc);
+        setEditDocumentTitle(doc.title);
+        setEditDocumentDriveLink(doc.driveLink || "");
+    };
+
+    const handleSaveDocument = async (e) => {
+        e.preventDefault();
+        if (!editingDocument) return;
+        setSavingDocument(true);
+        try {
+            const res = await fetch(`${API}/api/documents/${editingDocument.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title: editDocumentTitle.trim(), driveLink: editDocumentDriveLink.trim() }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to update document");
+            setDocumentsList(prev => prev.map(doc => doc.id === editingDocument.id ? { ...doc, title: data.title, driveLink: data.driveLink } : doc));
+            setEditingDocument(null);
+            showToast("Document updated.");
+        } catch (err) {
+            showToast(err.message, "error");
+        } finally {
+            setSavingDocument(false);
+        }
+    };
+
+    const handleDeleteDocument = async (doc) => {
+        if (!window.confirm(`Delete document "${doc.id}"? This cannot be undone.`)) return;
+        setDeletingDocument(prev => ({ ...prev, [doc.id]: true }));
+        try {
+            const res = await fetch(`${API}/api/documents/${doc.id}`, { method: "DELETE" });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to delete document");
+            setDocumentsList(prev => prev.filter(item => item.id !== doc.id));
+            showToast(`"${doc.id}" deleted.`);
+        } catch (err) {
+            showToast(err.message, "error");
+        } finally {
+            setDeletingDocument(prev => { const next = { ...prev }; delete next[doc.id]; return next; });
         }
     };
 
@@ -337,29 +410,6 @@ export default function ITAdminDashboard({
                         </div>
                     </div>
 
-                    {/* CSV Preview */}
-                    {csvPreview && (
-                        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                            <h3 className="mb-2 text-sm font-semibold text-slate-800">CSV Preview</h3>
-                            <div className="overflow-x-auto rounded border border-slate-100">
-                                <table className="w-full text-left text-xs">
-                                    <tbody>
-                                        {csvPreview.map((line, i) => (
-                                            <tr key={i} className={i === 0 ? "bg-slate-50 font-semibold text-slate-600" : "text-slate-700 border-t border-slate-50"}>
-                                                {line.split(",").map((cell, j) => (
-                                                    <td key={j} className="px-3 py-1.5 whitespace-nowrap">{cell.trim()}</td>
-                                                ))}
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                            {csvPreview.length >= 6 && (
-                                <p className="mt-2 text-[11px] text-slate-400">Showing first 5 data rows.</p>
-                            )}
-                        </div>
-                    )}
-
                     {/* Users table */}
                     <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 px-5 py-3.5 gap-4">
@@ -440,7 +490,7 @@ export default function ITAdminDashboard({
                                                             onChange={e => setEditRole(prev => ({ ...prev, [account.email]: parseInt(e.target.value) }))}
                                                             className="cursor-pointer rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-700 outline-none hover:border-slate-300"
                                                         >
-                                                            {ROLE_IDS.map(id => (
+                                                            {ROLE_IDS.filter(id => id !== 7).map(id => (
                                                                 <option key={id} value={id}>{ROLE_NAMES[id]}</option>
                                                             ))}
                                                         </select>
@@ -538,6 +588,34 @@ export default function ITAdminDashboard({
                                 >
                                     Save
                                 </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            )}
+
+            {editingDocument && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                    <form onSubmit={handleSaveDocument} className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+                        <h3 className="mb-4 text-sm font-semibold text-slate-800">Edit Document</h3>
+                        <p className="mb-4 text-xs text-slate-500">{editingDocument.id}</p>
+                        <div className="flex flex-col gap-3">
+                            <input
+                                type="text"
+                                value={editDocumentTitle}
+                                onChange={e => setEditDocumentTitle(e.target.value)}
+                                required
+                                className="w-full rounded-lg border border-slate-200 px-3.5 py-2 text-sm"
+                            />
+                            <input
+                                type="url"
+                                value={editDocumentDriveLink}
+                                onChange={e => setEditDocumentDriveLink(e.target.value)}
+                                className="w-full rounded-lg border border-slate-200 px-3.5 py-2 text-sm"
+                            />
+                            <div className="flex justify-end gap-2">
+                                <button type="button" onClick={() => setEditingDocument(null)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 cursor-pointer">Cancel</button>
+                                <button type="submit" disabled={savingDocument} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 cursor-pointer">{savingDocument ? 'Saving…' : 'Save'}</button>
                             </div>
                         </div>
                     </form>

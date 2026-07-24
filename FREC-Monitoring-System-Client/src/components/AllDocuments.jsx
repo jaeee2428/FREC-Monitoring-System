@@ -116,8 +116,8 @@ export default function AllDocumentsView({ role = null }) {
                                         </td>
                                     </tr>
                                 ) : (
-                                    filtered.map((doc, idx) => (
-                                        <tr key={doc.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/40">
+                    filtered.map((doc, idx) => (
+                        <tr key={doc.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/40">
                                             <td className="px-5 py-4 text-slate-500">{idx + 1}</td>
                                             <td className="px-5 py-4 font-mono text-xs text-slate-500">{doc.docId}</td>
                                             <td className="px-5 py-4 font-semibold text-slate-800">{doc.title}</td>

@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { StatCard } from "../../components/StatCard.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
-import { XCircleIcon, ArrowRightCircleIcon, CheckCircleIcon } from "../../components/icons.jsx";
+import { XCircleIcon, ArrowRightCircleIcon, CheckCircleIcon, PencilIcon, TrashIcon } from "../../components/icons.jsx";
 import ModeBadge from "../../components/ModeBadge.jsx";
 import DriveLinkButton from "../../components/DriveLinkButton.jsx";
 
 const FREC_REVIEW_STATUSES = ["FORWARDED-FREC", "DEAN ENDORSED", "FOR REVIEW"];
 const TERMINAL_STATUSES = ["COMPLETED", "DISAPPROVED", "CANCELLED"];
 
-export default function ReviewerApprovals({ submissions, onApprove, onDisapprove }) {
+export default function ReviewerApprovals({ submissions, onApprove, onDisapprove, onEdit, onDelete }) {
     const [filter, setFilter] = useState("All");
 
     const newList = submissions.filter((s) => s.status === "SUBMITTED");
@@ -91,6 +91,22 @@ export default function ReviewerApprovals({ submissions, onApprove, onDisapprove
                                             <DriveLinkButton driveLink={sub.driveLink} />
                                         </div>
                                     )}
+                                    <div className="mt-3 flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => onEdit?.(sub)}
+                                            className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
+                                        >
+                                            <PencilIcon size={12} /> Edit
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => onDelete?.(sub)}
+                                            className="inline-flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700"
+                                        >
+                                            <TrashIcon size={12} /> Delete
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="flex flex-col items-end gap-3">

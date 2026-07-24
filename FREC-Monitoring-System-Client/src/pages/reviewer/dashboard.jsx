@@ -49,6 +49,9 @@ export default function ReviewerDashboard({ user = { name: "Prof. Ramon Dela Cru
     const [toast, setToast] = useState(null);
     const [toastType, setToastType] = useState("success");
     const [disapproving, setDisapproving] = useState(null);
+    const [editingDoc, setEditingDoc] = useState(null);
+    const [editTitle, setEditTitle] = useState("");
+    const [editDriveLink, setEditDriveLink] = useState("");
 
     const newCount = submissions.filter((s) => s.status === "SUBMITTED").length;
     const pendingCount = submissions.filter((s) => s.status !== "SUBMITTED" && !FREC_REVIEW_STATUSES.includes(s.status) && !TERMINAL_STATUSES.includes(s.status)).length;
@@ -132,6 +135,44 @@ export default function ReviewerDashboard({ user = { name: "Prof. Ramon Dela Cru
         }
     };
 
+    const editDocument = (doc) => {
+        setEditingDoc(doc);
+        setEditTitle(doc.title);
+        setEditDriveLink(doc.driveLink || "");
+    };
+
+    const saveDocument = async (e) => {
+        e.preventDefault();
+        if (!editingDoc) return;
+        try {
+            const res = await fetch(`${API}/api/documents/${editingDoc.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title: editTitle.trim(), driveLink: editDriveLink.trim() }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to update document");
+            setSubmissions(prev => prev.map(s => s.id === editingDoc.id ? { ...s, title: data.title, driveLink: data.driveLink } : s));
+            setEditingDoc(null);
+            showToast("Document updated.");
+        } catch (err) {
+            showToast(err.message, "error");
+        }
+    };
+
+    const deleteDocument = async (doc) => {
+        if (!window.confirm(`Delete document ${doc.id}?`)) return;
+        try {
+            const res = await fetch(`${API}/api/documents/${doc.id}`, { method: "DELETE" });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to delete document");
+            setSubmissions(prev => prev.filter(s => s.id !== doc.id));
+            showToast("Document deleted.");
+        } catch (err) {
+            showToast(err.message, "error");
+        }
+    };
+
     const pendingList = submissions.filter((s) => FREC_REVIEW_STATUSES.includes(s.status));
     const queueLabel = "My Queue";
 
@@ -165,6 +206,8 @@ export default function ReviewerDashboard({ user = { name: "Prof. Ramon Dela Cru
                     submissions={submissions}
                     onApprove={handleApprove}
                     onDisapprove={handleDisapprove}
+                    onEdit={editDocument}
+                    onDelete={deleteDocument}
                 />
             ) : view === "Workflow Guide" ? (
                 <WorkflowGuide />
@@ -276,6 +319,22 @@ export default function ReviewerDashboard({ user = { name: "Prof. Ramon Dela Cru
                     onConfirm={(remarks) => handleDisapprove(disapproving.id, remarks)}
                     onCancel={() => setDisapproving(null)}
                 />
+            )}
+
+            {editingDoc && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                    <form onSubmit={saveDocument} className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+                        <h3 className="mb-4 text-sm font-semibold text-slate-800">Edit Document</h3>
+                        <div className="flex flex-col gap-3">
+                            <input className="w-full rounded-lg border border-slate-200 px-3.5 py-2 text-sm" value={editTitle} onChange={e => setEditTitle(e.target.value)} />
+                            <input className="w-full rounded-lg border border-slate-200 px-3.5 py-2 text-sm" value={editDriveLink} onChange={e => setEditDriveLink(e.target.value)} />
+                            <div className="flex justify-end gap-2">
+                                <button type="button" onClick={() => setEditingDoc(null)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600">Cancel</button>
+                                <button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Save</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
             )}
 
             {toast && (
